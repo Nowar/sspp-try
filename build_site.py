@@ -2,11 +2,14 @@
 用法：pip install yfinance pandas ; python build_site.py
 """
 import json, time, datetime as dt, pathlib, sys
+import pandas as pd
 import yfinance as yf
 
 # 想換標的只改這裡。美元標的填美元價，0050 為台幣價，最後一項是匯率。
-TICKERS = {'GLD': 'GLD', 'IEF': 'IEF', 'VT': 'VT', '006208': '006208.TW', 'USDTWD': 'TWD=X'}
-NAMES = ['GLD 黃金', 'IEF 美公債(7-10年)', 'VT 全球股票', '006208 台股']
+TICKERS = {'GLD': 'GLD', 'IEF': 'IEF', 'VT': 'VT', '0050': '0050.TW', 'USDTWD': 'TWD=X'}
+NAMES = ['GLD 黃金', 'IEF 美公債(7-10年)', 'VT 全球股票', '0050 台股']
+# 已知分割：{欄位: [(生效日, 一拆幾)]}。Yahoo 已調整就略過；沒調整才把生效日之前的價格除以比例
+SPLITS = {'0050': [('2025-06-18', 4)]}
 
 df = None
 for attempt in range(4):              # Yahoo 偶爾會限流，重試幾次
@@ -21,6 +24,24 @@ for attempt in range(4):              # Yahoo 偶爾會限流，重試幾次
 else:
     sys.exit('抓不到資料，保留舊網頁不更新')
 df = df.rename(columns={v: k for k, v in TICKERS.items()})[list(TICKERS)]
+if df.index.tz is not None:
+    df.index = df.index.tz_localize(None)
+
+# 分割補正：比較生效日前最後一筆與生效日起第一筆的價格比，判斷 Yahoo 是否已調整
+for col, events in SPLITS.items():
+    for day, k in events:
+        t = pd.Timestamp(day)
+        before, after = df.loc[df.index < t, col].dropna(), df.loc[df.index >= t, col].dropna()
+        if before.empty or after.empty:
+            continue
+        ratio = after.iloc[0] / before.iloc[-1]
+        if abs(ratio * k - 1) < 0.25:
+            df.loc[df.index < t, col] = df.loc[df.index < t, col] / k
+            print(f'{col} {day} 一拆{k}：Yahoo 未調整（前後價格比 {ratio:.3f}），已將之前價格除以 {k}')
+        elif abs(ratio - 1) < 0.25:
+            print(f'{col} {day} 一拆{k}：Yahoo 已調整（前後價格比 {ratio:.3f}），不處理')
+        else:
+            print(f'{col} {day} 一拆{k}：前後價格比 {ratio:.3f} 無法判斷，維持原值')
 
 # 匯率清理：Yahoo 的 TWD=X 偶有錯誤跳點，先剔除不合理值與偏離前後一個月中位數超過 5% 的點
 fx = df['USDTWD']

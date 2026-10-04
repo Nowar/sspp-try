@@ -5,7 +5,7 @@ GitHub Actions 每天自動抓資料、產生網頁並發布到 GitHub Pages。
 
 ## 檔案
 - `template.html`：網頁本體（版面、計算、圖表）。沒有資料時會顯示合成示範資料並出現黃色警示。
-- `build_site.py`：抓 GLD、IEF、VT、006208.TW、TWD=X 的還原價，轉成月資料後寫進 `dist/index.html`。
+- `build_site.py`：抓 GLD、IEF、VT、0050.TW、TWD=X 的還原價，轉成月資料後寫進 `dist/index.html`。
 - `.github/workflows/pages.yml`：每天台灣時間約 06:30、14:30 自動執行並部署。
 
 ## 一次性設定
@@ -24,6 +24,9 @@ GitHub Actions 每天自動抓資料、產生網頁並發布到 GitHub Pages。
 ## 更新網頁
 - 只改版面或計算：上傳新的 `template.html` 覆蓋舊檔，push 後會自動重新部署。
 - 換標的：改 `build_site.py` 最上面的 `TICKERS` 與 `NAMES`（前三個為美元資產，第四個為台幣資產，最後是匯率）。
+
+## 分割補正
+- `build_site.py` 裡的 `SPLITS` 記錄已知分割（目前是 0050 於 2025-06-18 一拆四）。程式會判斷 Yahoo 是否已調整，未調整才自動校正，結果會印在 Actions 日誌。
 
 ## 疑難排解
 - Actions 出現紅色叉叉：多半是 Yahoo 暫時限流，舊網頁仍在線上。進該次執行按 Re-run all jobs。
