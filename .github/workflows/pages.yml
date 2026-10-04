@@ -1,0 +1,42 @@
+name: build-and-deploy
+on:
+  schedule:
+    - cron: '30 6 * * *'    # 台灣時間 14:30（台股收盤後）
+    - cron: '30 22 * * *'   # 台灣時間 06:30（美股收盤後）
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install yfinance pandas
+      - run: python build_site.py
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: dist}
+      - name: monthly heartbeat commit (avoid schedule auto-disable)
+        if: github.event_name == 'schedule'
+        run: |
+          if [ "$(date -u +%d)" = "01" ]; then
+            date -u > heartbeat.txt
+            git config user.name github-actions
+            git config user.email actions@github.com
+            git add heartbeat.txt
+            git commit -m "heartbeat" && git push || true
+          fi
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.d.outputs.page_url }}
+    steps:
+      - id: d
+        uses: actions/deploy-pages@v4
