@@ -1,7 +1,7 @@
 """抓真實歷史價格 → 換算成月資料 → 把數字直接寫進 dist/index.html（單一檔案，手機直接開）。
 用法：pip install yfinance pandas ; python build_site.py
 """
-import json, time, datetime as dt, pathlib, sys
+import json, os, time, datetime as dt, pathlib, sys
 import pandas as pd
 import yfinance as yf
 
@@ -9,21 +9,67 @@ import yfinance as yf
 TICKERS = {'GLD': 'GLD', 'IEF': 'IEF', 'VT': 'VT', '0050': '0050.TW', 'USDTWD': 'TWD=X'}
 NAMES = ['GLD 黃金', 'IEF 美公債(7-10年)', 'VT 全球股票', '0050 台股']
 
-df = None
-for attempt in range(4):              # Yahoo 偶爾會限流，重試幾次
-    try:
-        df = yf.download(list(TICKERS.values()), start='2000-01-01', auto_adjust=True, progress=False)['Close']
-        if len(df) > 1000 and not df.isna().all().any():
-            break
-    except Exception as e:
-        print('下載失敗：', e)
-    print(f'第 {attempt + 1} 次沒拿到完整資料，30 秒後重試')
-    time.sleep(30)
-else:
-    sys.exit('抓不到資料，保留舊網頁不更新')
-df = df.rename(columns={v: k for k, v in TICKERS.items()})[list(TICKERS)]
-if df.index.tz is not None:
-    df.index = df.index.tz_localize(None)
+# ---------- 下載與本地快取 ----------
+# 每日收盤價存在 data/*.csv（GitHub Actions 會把它 commit 回 repo）。下次只抓最後一天前 20 天起的新資料，
+# 用重疊那段對齊 Yahoo 的還原基準（新除息時 Yahoo 會把整段舊價格等比例縮小），再接回舊資料。
+# 每 30 天整段重抓一次，同步 Yahoo 對舊資料的修正；手動執行時勾選「整段重抓」也會重抓。
+DATA_DIR = pathlib.Path('data'); DATA_DIR.mkdir(exist_ok=True)
+META_PATH = DATA_DIR / 'meta.json'
+META = json.loads(META_PATH.read_text(encoding='utf-8')) if META_PATH.exists() else {}
+TODAY = dt.date.today()
+OVERLAP_DAYS, FULL_EVERY_DAYS = 20, 30
+
+def fetch(symbols, start, adjusted):
+    for attempt in range(4):              # Yahoo 偶爾會限流，重試幾次
+        try:
+            d = yf.download(symbols, start=start, auto_adjust=adjusted, progress=False)['Close']
+            if isinstance(d, pd.Series):
+                d = d.to_frame(symbols[0])
+            if d.index.tz is not None:
+                d.index = d.index.tz_localize(None)
+            if len(d) and all(s in d.columns for s in symbols) and not d[symbols].isna().all().any():
+                return d[symbols]
+        except Exception as e:
+            print('下載失敗：', e)
+        print(f'第 {attempt + 1} 次沒拿到完整資料，30 秒後重試')
+        time.sleep(30)
+    return None
+
+def cached(name, symbols, adjusted, required=True):
+    path = DATA_DIR / f'{name}.csv'
+    old = pd.read_csv(path, index_col=0, parse_dates=True) if path.exists() else None
+    last_full = dt.date.fromisoformat(META.get(f'{name}_full', '2000-01-01'))
+    full = (old is None or list(old.columns) != symbols or os.environ.get('FULL') == '1'
+            or (TODAY - last_full).days >= FULL_EVERY_DAYS)
+    start = '2000-01-01' if full else (old.index.max() - pd.Timedelta(days=OVERLAP_DAYS)).strftime('%Y-%m-%d')
+    new = fetch(symbols, start, adjusted)
+    if new is None:
+        if old is not None:
+            print(f'{name}：這次抓不到新資料，沿用快取（到 {old.index.max():%Y-%m-%d}）')
+            return old
+        if required:
+            sys.exit(f'{name}：抓不到資料也沒有快取，保留舊網頁不更新')
+        return None
+    if full:
+        merged = new
+        META[f'{name}_full'] = TODAY.isoformat()
+        print(f'{name}：整段重抓 {len(new)} 天（{new.index.min():%Y-%m-%d} ~ {new.index.max():%Y-%m-%d}）')
+    else:
+        old = old.copy()
+        for c in symbols:
+            ov = old[c].dropna().index.intersection(new[c].dropna().index)
+            if len(ov):
+                f = new.at[ov[0], c] / old.at[ov[0], c]
+                if abs(f - 1) > 1e-6:
+                    old[c] *= f
+                    print(f'{name}：{c} 還原基準改變（新除息或分割），舊資料等比例調整 ×{f:.6f}')
+        merged = pd.concat([old[old.index < new.index.min()], new]).sort_index()
+        print(f'{name}：增量抓取 {new.index.min():%Y-%m-%d} 起 {len(new)} 天，合併後共 {len(merged)} 天（到 {merged.index.max():%Y-%m-%d}）')
+    merged.to_csv(path, float_format='%.6f')
+    return merged
+
+df = cached('prices', list(TICKERS.values()), adjusted=True)
+df = df.rename(columns={v: k for k, v in TICKERS.items()})[list(TICKERS)].copy()
 
 # 分割斷層自動修復：Yahoo 有時只把分割調整套用到某一段歷史（例如 0050 在 2014-01 前後差 4 倍）。
 # 對每個價格欄位找「相鄰兩個交易日價格比 ≈ 1/k 或 k（k=2..10）」且前後 5 天中位數也維持這個比例的斷點，
@@ -76,12 +122,33 @@ if bad.any().any():
 
 if len(m) < 24:
     sys.exit(f'共同月份只有 {len(m)} 個，資料不足，本次不發布')
+# VT 每月配息殖利率：還原價報酬 − 未還原價報酬（給網頁扣股息預扣稅用）
+div_vt = None
+try:
+    raw = cached('vt_raw', ['VT'], adjusted=False, required=False)
+    if raw is None:
+        raise RuntimeError('沒有資料')
+    raw = raw['VT']
+    rawm = raw.ffill().groupby(raw.index.to_period('M')).last()
+    rawm.index = rawm.index.to_timestamp('M')
+    adj = m['VT']
+    rawm = rawm.reindex(adj.index, method='nearest')
+    dy = ((adj / adj.shift()) - (rawm / rawm.shift())).fillna(0).clip(0, 0.05)
+    dy[dy < 0.0005] = 0
+    div_vt = [round(float(x), 5) for x in dy]
+    print(f'VT 配息月份 {int((dy > 0).sum())} 個，平均年殖利率約 {dy.mean() * 12:.2%}')
+except Exception as e:
+    print('VT 配息資料抓取失敗，網頁改用 2% 年殖利率估算：', e)
+
 rows = [[d.strftime('%Y-%m')] + [round(float(x), 4) for x in r] for d, r in zip(m.index, m.values)]
 asof = {k: df[k].last_valid_index().date().isoformat() for k in TICKERS}
 payload = {'names': NAMES, 'rows': rows, 'updated': dt.date.today().isoformat(), 'asof': asof,
-           'source': 'Yahoo Finance（yfinance，已還原股息與分割）'}
+           'source': 'Yahoo Finance（yfinance，已還原股息與分割）', 'divVT': div_vt}
 print(f'{len(rows)} 個月：{rows[0][0]} ~ {rows[-1][0]}')
 print('首列', rows[0]); print('末列', rows[-1])
+
+META['last_update'] = TODAY.isoformat()
+META_PATH.write_text(json.dumps(META, ensure_ascii=False, indent=1), encoding='utf-8')
 
 html = pathlib.Path('template.html').read_text(encoding='utf-8')
 assert '/*__DATA__*/null' in html

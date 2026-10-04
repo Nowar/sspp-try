@@ -6,7 +6,7 @@ GitHub Actions 每天自動抓資料、產生網頁並發布到 GitHub Pages。
 ## 檔案
 - `template.html`：網頁本體（版面、計算、圖表）。沒有資料時會顯示合成示範資料並出現黃色警示。
 - `build_site.py`：抓 GLD、IEF、VT、0050.TW、TWD=X 的還原價，轉成月資料後寫進 `dist/index.html`。
-- `.github/workflows/pages.yml`：每天台灣時間約 06:30、14:30 自動執行並部署。
+- `.github/workflows/pages.yml`：每天台灣時間約 06:30、14:30 自動執行、部署，並把價格快取存回 repo。
 
 ## 一次性設定
 1. GitHub → New repository → 名稱 `portfolio-compare` → Public → 勾 Add a README → Create。
@@ -27,6 +27,12 @@ GitHub Actions 每天自動抓資料、產生網頁並發布到 GitHub Pages。
 
 ## 分割補正
 - 程式會自動找出價格在相鄰交易日差 2～10 倍、且之後一直維持的斷點（Yahoo 分割調整只套用到部分歷史時會出現），把斷點之前的價格校正到同一基準，結果印在 Actions 日誌。
+
+## 本地資料快取
+- 每日價格存在 `data/prices.csv`、`data/vt_raw.csv`，每次執行後自動 commit 回 repo。
+- 平常只抓「快取最後一天前 20 天」起的新資料，用重疊的日子對齊 Yahoo 的還原基準（新除息時 Yahoo 會把舊價格等比例縮小），再接回舊資料。
+- 每 30 天自動整段重抓一次；想立刻重抓：Actions → build-and-deploy → Run workflow → 勾「整段重抓」。
+- Yahoo 暫時抓不到時會沿用快取繼續產生網頁，頁面底部的最新價日期會停在快取的最後一天。
 
 ## 疑難排解
 - Actions 出現紅色叉叉：多半是 Yahoo 暫時限流，舊網頁仍在線上。進該次執行按 Re-run all jobs。
