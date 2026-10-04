@@ -6,9 +6,9 @@
 <title>投資組合調整比較（台幣）</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mu:#6b7480;--bd:#e2e5ea;--a:#4a6fa5;--b:#e8833a;--good:#1a8a4a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171b;--card:#1d2127;--tx:#e8eaed;--mu:#9aa3ad;--bd:#2e343c;--a:#7ea3d6;--b:#f0a064;--good:#4cc27c}}
-:root[data-theme="dark"]{--bg:#14171b;--card:#1d2127;--tx:#e8eaed;--mu:#9aa3ad;--bd:#2e343c;--a:#7ea3d6;--b:#f0a064;--good:#4cc27c}
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mu:#6b7480;--bd:#e2e5ea;--a:#4a6fa5;--b:#e8833a;--good:#1a8a4a;--bad:#c9372c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171b;--card:#1d2127;--tx:#e8eaed;--mu:#9aa3ad;--bd:#2e343c;--a:#7ea3d6;--b:#f0a064;--good:#4cc27c;--bad:#ef6b60}}
+:root[data-theme="dark"]{--bg:#14171b;--card:#1d2127;--tx:#e8eaed;--mu:#9aa3ad;--bd:#2e343c;--a:#7ea3d6;--b:#f0a064;--good:#4cc27c;--bad:#ef6b60}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 -apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
@@ -29,6 +29,7 @@ th,td{padding:7px 8px;border-bottom:1px solid var(--bd);text-align:right;white-s
 th:first-child,td:first-child{text-align:left}
 th{color:var(--mu);font-weight:500;font-size:13px}th.a{color:var(--a)}th.b{color:var(--b)}
 .good{color:var(--good);font-weight:600}
+.bad{color:var(--bad);font-weight:600}
 .ch{position:relative;height:270px}
 .warn{background:#fff4d6;color:#6a4a00;border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:12px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .warn{background:#3a3016;color:#f2d98a}}
@@ -110,8 +111,8 @@ let w12=0;for(let i=12;i<eq.length;i++)w12=Math.min(w12,eq[i]/eq[i-12]-1);
 return{cagr:e**(12/n)-1,vol:std(rs)*Math.sqrt(12),dd,w12,worst:Math.min(...rs)}}
 
 function table(id,rows){let h='<tr><th></th><th class="a">A 調整前</th><th class="b">B 調整後</th></tr>';
-for(const[l,a,b,f,up]of rows){const e=up==null||isNaN(a+b)||Math.abs(a-b)<1e-9,ab=up?a>b:a<b;
-h+=`<tr><td>${l}</td><td class="${e?'':ab?'good':''}">${f(a)}</td><td class="${e?'':ab?'':'good'}">${f(b)}</td></tr>`}
+for(const[l,a,b,f,up,red]of rows){const e=up==null||isNaN(a+b)||Math.abs(a-b)<1e-9,ab=up?a>b:a<b,rd=x=>red&&Math.round(x*1000)>0;
+h+=`<tr><td>${l}</td><td class="${rd(a)?'bad':e?'':ab?'good':''}">${f(a)}</td><td class="${rd(b)?'bad':e?'':ab?'':'good'}">${f(b)}</td></tr>`}
 $(id).innerHTML=h}
 function mk(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)}
 function base(){const st=getComputedStyle(document.documentElement);Chart.defaults.color=st.getPropertyValue('--mu').trim()||'#888';Chart.defaults.borderColor=st.getPropertyValue('--bd').trim()||'#ddd';
@@ -181,8 +182,8 @@ const Y=Math.max(1,Math.min(50,Math.round(+$('yrs').value)||10)),H=Y*12,yl=`（$
 $('ft').textContent=`未來模擬：今天起 ${Y} 年後`;
 const em=hm;
 const S=sim(wa,wb,H,em,hm,mode,init,ctb,wd),[sa,sb]=S.S;
-const fr=[[`整體虧損機率（總投入 ${fm(S.inv)}）`,sa.loss,sb.loss,fp,0]];
-if(wd>0)fr.push(['資產耗盡機率',sa.dep,sb.dep,fp,0]);
+const fr=[[`整體虧損機率（總投入 ${fm(S.inv)}）`,sa.loss,sb.loss,fp,0,1]];
+if(wd>0)fr.push(['資產耗盡機率',sa.dep,sb.dep,fp,0,1]);
 fr.push(['最大回撤 P5（最糟 5%）',sa.mdd5,sb.mdd5,fp,1],['最大回撤中位數',sa.mdd,sb.mdd,fp,1],['終值 P5 差的 5%'+yl,sa.p5,sb.p5,fm,1],['終值中位數'+yl,sa.med,sb.med,fm,1],['終值 P95 好的 5%'+yl,sa.p95,sb.p95,fm,1]);
 table('t2',fr);
 const ys=Y>20?5:Y>10?2:1,XL=[...Array(H+1).keys()].map(i=>i%12||(i/12)%ys?'':(i/12)+'年');
