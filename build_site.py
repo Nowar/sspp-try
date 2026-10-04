@@ -8,8 +8,6 @@ import yfinance as yf
 # 想換標的只改這裡。美元標的填美元價，0050 為台幣價，最後一項是匯率。
 TICKERS = {'GLD': 'GLD', 'IEF': 'IEF', 'VT': 'VT', '0050': '0050.TW', 'USDTWD': 'TWD=X'}
 NAMES = ['GLD 黃金', 'IEF 美公債(7-10年)', 'VT 全球股票', '0050 台股']
-# 已知分割：{欄位: [(生效日, 一拆幾)]}。Yahoo 已調整就略過；沒調整才把生效日之前的價格除以比例
-SPLITS = {'0050': [('2025-06-18', 4)]}
 
 df = None
 for attempt in range(4):              # Yahoo 偶爾會限流，重試幾次
@@ -27,21 +25,27 @@ df = df.rename(columns={v: k for k, v in TICKERS.items()})[list(TICKERS)]
 if df.index.tz is not None:
     df.index = df.index.tz_localize(None)
 
-# 分割補正：比較生效日前最後一筆與生效日起第一筆的價格比，判斷 Yahoo 是否已調整
-for col, events in SPLITS.items():
-    for day, k in events:
-        t = pd.Timestamp(day)
-        before, after = df.loc[df.index < t, col].dropna(), df.loc[df.index >= t, col].dropna()
-        if before.empty or after.empty:
-            continue
-        ratio = after.iloc[0] / before.iloc[-1]
-        if abs(ratio * k - 1) < 0.25:
-            df.loc[df.index < t, col] = df.loc[df.index < t, col] / k
-            print(f'{col} {day} 一拆{k}：Yahoo 未調整（前後價格比 {ratio:.3f}），已將之前價格除以 {k}')
-        elif abs(ratio - 1) < 0.25:
-            print(f'{col} {day} 一拆{k}：Yahoo 已調整（前後價格比 {ratio:.3f}），不處理')
-        else:
-            print(f'{col} {day} 一拆{k}：前後價格比 {ratio:.3f} 無法判斷，維持原值')
+# 分割斷層自動修復：Yahoo 有時只把分割調整套用到某一段歷史（例如 0050 在 2014-01 前後差 4 倍）。
+# 對每個價格欄位找「相鄰兩個交易日價格比 ≈ 1/k 或 k（k=2..10）」且前後 5 天中位數也維持這個比例的斷點，
+# 把斷點之前的價格乘上該比例，接回同一個基準。實際 ETF 不可能一天漲跌 50% 以上，所以不會誤判正常行情。
+def repair_splits(col):
+    v = df[col].dropna()
+    r = v / v.shift(1)
+    fixes = []
+    for i in [j for j in range(1, len(v)) if abs(r.iloc[j] - 1) > 0.4]:
+        for k in range(2, 11):
+            for f in (1 / k, k):
+                pre, post = v.iloc[max(0, i - 5):i].median(), v.iloc[i:i + 5].median()
+                if abs(r.iloc[i] / f - 1) < 0.08 and abs(post / pre / f - 1) < 0.15:
+                    fixes.append((v.index[i], f))
+    for day, f in fixes:
+        df.loc[df.index < day, col] *= f
+        print(f'{col} {day:%Y-%m-%d} 前後差 {1 / f:.0f} 倍' if f < 1 else f'{col} {day:%Y-%m-%d} 前後差 1/{f:.0f}', '→ 已把之前的價格校正到同一基準')
+    if not fixes:
+        print(f'{col}：未發現分割斷層')
+
+for col in [c for c in TICKERS if c != 'USDTWD']:
+    repair_splits(col)
 
 # 匯率清理：Yahoo 的 TWD=X 偶有錯誤跳點，先剔除不合理值與偏離前後一個月中位數超過 5% 的點
 fx = df['USDTWD']
