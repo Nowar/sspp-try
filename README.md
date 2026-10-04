@@ -5,7 +5,7 @@ GitHub Actions 每天自動抓資料、產生網頁並發布到 GitHub Pages。
 
 ## 檔案
 - `template.html`：網頁本體（版面、計算、圖表）。沒有資料時會顯示合成示範資料並出現黃色警示。
-- `build_site.py`：抓 GLD、IEF、VT、0050.TW、TWD=X 的還原價，轉成月資料後寫進 `dist/index.html`。
+- `build_site.py`：抓 GLD、IEF、VT、006208.TW、TWD=X 的還原價，轉成月資料後寫進 `dist/index.html`。
 - `.github/workflows/pages.yml`：每天台灣時間約 06:30、14:30 自動執行並部署。
 
 ## 一次性設定
@@ -27,5 +27,5 @@ GitHub Actions 每天自動抓資料、產生網頁並發布到 GitHub Pages。
 
 ## 疑難排解
 - Actions 出現紅色叉叉：多半是 Yahoo 暫時限流，舊網頁仍在線上。進該次執行按 Re-run all jobs。
-- 日誌出現「資料異常」：某標的單月漲跌超過 40%，通常是分割沒調整，暫不發布以免錯誤數字上線。
+- 日誌出現「資料異常」：某標的單月漲跌超過 40%，通常是錯誤報價或分割沒調整，日誌會列出是哪個月份，暫不發布以免錯誤數字上線。
 - 資料很多天沒更新：到 Actions 頁看排程是否被停用，若有提示按 Enable。
