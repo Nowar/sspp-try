@@ -164,7 +164,8 @@ $('rvn').textContent=rev&&Math.min(iA,iB)<init*1e-6?'只靠每月定期投入，
 const PA=path(wa,rows,mode,iA,ctb,wd),PB=path(wb,rows,mode,iB,ctb,wd),A=met(PA.ret),B=met(PB.ret);
 const ab=v=>{let pk=0;return v.map(x=>(pk=Math.max(pk,x),x-pk))},dA=ab(PA.val),dB=ab(PB.val);
 const irr=P=>{if(P.dep)return NaN;const m=P.ret.length,nf=ctb-wd/12;let lo=-.5,hi=.5;const f=r=>{let s=-P.val[0]+P.val[m]/(1+r)**m;for(let t=1;t<m;t++)s-=nf/(1+r)**t;return s};for(let i=0;i<60;i++){const x=(lo+hi)/2;f(x)>0?lo=x:hi=x}return(1+lo)**12-1};
-const hr=[rev?[`當年需投入（${st}）`,iA,iB,fm,0]:[`起始資產（${st}）`,init,init,fm,null],...(rev?[['成長倍數（今天÷當年）',init/iA,init/iB,x=>x.toFixed(2)+' 倍',1]]:[]),['年化報酬 (CAGR)',A.cagr,B.cagr,fp,1],['年化波動',A.vol,B.vol,fp,0],['最大回撤',A.dd,B.dd,fp,1],['最差 12 個月',A.w12,B.w12,fp,1],['最差單月',A.worst,B.worst,fp,1],[`期末資產（${d1}）`,L(PA.val),L(PB.val),fm,1],['最大回撤金額',Math.min(...dA),Math.min(...dB),fm,1]];
+const yy=DT[DT.length-1].slice(0,4),yR=R.filter((_,i)=>DT[i].startsWith(yy)),ytd=w=>L(path(w,yR,mode,1,0,0).val)-1;
+const hr=[rev?[`當年需投入（${st}）`,iA,iB,fm,0]:[`起始資產（${st}）`,init,init,fm,null],...(rev?[['成長倍數（今天÷當年）',init/iA,init/iB,x=>x.toFixed(2)+' 倍',1]]:[]),[`YTD（${yy} 年至 ${DT[DT.length-1]}）`,ytd(wa),ytd(wb),fp,1],['年化報酬 (CAGR)',A.cagr,B.cagr,fp,1],['年化波動',A.vol,B.vol,fp,0],['最大回撤',A.dd,B.dd,fp,1],['最差 12 個月',A.w12,B.w12,fp,1],['最差單月',A.worst,B.worst,fp,1],[`期末資產（${d1}）`,L(PA.val),L(PB.val),fm,1],['最大回撤金額',Math.min(...dA),Math.min(...dB),fm,1]];
 if(ctb>0)hr.push(['累計投入',L(PA.inv),L(PB.inv),fm,null]);
 if(wd>0)hr.push(['累計提領',PA.wsum,PB.wsum,fm,null],['資產是否耗盡',PA.dep?1:0,PB.dep?1:0,x=>x?'是':'否',0]);
 if(ctb>0||wd>0)hr.push(['資金加權年化報酬',irr(PA),irr(PB),fp,1]);
