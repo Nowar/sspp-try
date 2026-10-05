@@ -57,7 +57,8 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="row"><label>未來模擬年數</label><input type="number" id="yrs" value="10" min="1" max="50"></div>
 <div class="row"><label>再平衡方式</label><select id="rb"><option value="1">每月再平衡</option><option value="3">每季再平衡</option><option value="6" selected>每半年再平衡</option><option value="12">每年再平衡</option><option value="0">不再平衡（買進持有）</option></select></div>
 <div class="row"><label>每月定期投入（萬）</label><input type="number" id="ctb" value="0" min="0" step="1"></div>
-<div class="row"><label>每年提領（萬，名目）<div class="sum" id="wdp"></div></label><input type="number" id="wd" value="200" min="0" step="1"></div>
+<div class="row"><label>每年提領（萬，第一年）<div class="sum" id="wdp"></div></label><input type="number" id="wd" value="200" min="0" step="1"></div>
+<div class="row"><label>提領年增率（%）<div class="sum">每 12 個月調高一次，反映通膨</div></label><input type="number" id="wdg" value="3" step="0.5"></div>
 <div class="note">價格已是含息報酬（股息自動再投入），模型不會另外發股息給你。每年提領＝你每年從組合拿出來花的全部現金（含股息）。實際操作時，需要賣出的金額＝提領金額 − 當年除息領到的股息，不要把股息另外加在提領之外。</div>
 <div class="row"><label>VT 股息預扣稅（%）<div class="sum">依 VT 每次實際配息逐月扣除</div></label><input type="number" id="wht" value="30" min="0" max="100" step="1"></div>
 </div>
@@ -66,7 +67,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="note">用歷史月報酬 bootstrap（同月資產一起抽，保留相關性與匯率）。A、B 使用同一批抽樣，差異只來自配置。終值＝今天起算第 N 年底的資產；整體虧損＝期末資產加上已提領金額，仍低於總投入。</div></div>
 <div class="card"><h2>未來資產分布（P5 / 中位數 / P95，萬台幣）</h2><div class="ch" style="height:300px"><canvas id="c3"></canvas></div></div>
 <div class="card"><h2 id="ht">歷史回測</h2><div class="tw"><table id="t1"></table></div><div class="note" id="rvn" style="color:var(--b)"></div>
-<div class="note">報酬、波動、回撤為時間加權；金額以你輸入的總淨值為起點；定期投入在月底、按目標比例買進；未計交易成本與稅；VT 已依你設定的稅率扣除股息預扣稅；IEF、0050 的稅負（預扣稅、二代健保）未計。綠色為較佳者。<br>期末資產＝回測最後一個月的資產。提領為名目金額（不隨通膨調整），每月底提領 1/12、按當時比例賣出；有投入或提領時，回撤金額會含現金流影響。</div></div>
+<div class="note">報酬、波動、回撤為時間加權；金額以你輸入的總淨值為起點；定期投入在月底、按目標比例買進；未計交易成本與稅；VT 已依你設定的稅率扣除股息預扣稅；IEF、0050 的稅負（預扣稅、二代健保）未計。綠色為較佳者。<br>期末資產＝回測最後一個月的資產。提領金額每 12 個月依提領年增率調高，每月底提領當年金額的 1/12、按當時比例賣出；有投入或提領時，回撤金額會含現金流影響。</div></div>
 <div class="card"><h2>資產總值（萬台幣）</h2><div class="ch"><canvas id="c1"></canvas></div></div>
 <div class="card"><h2>距高點虧損金額（萬台幣，以資產總值計）</h2><div class="ch"><canvas id="c2"></canvas></div></div>
 
@@ -122,21 +123,21 @@ const opt=(y,tt,t)=>({responsive:true,maintainAspectRatio:false,animation:false,
 scales:{x:{ticks:{maxTicksLimit:6,autoSkip:true}},y:{title:{display:!!t,text:t},ticks:{callback:y}}},
 plugins:{legend:{labels:{boxWidth:14,filter:i=>!i.text.startsWith('_')}},tooltip:{callbacks:{label:i=>i.dataset.label.replace(/^_/,'')+'：'+tt(i.parsed.y)}}}});
 
-function path(w,rs,mode,init,c,wd){const n=rs.length,m=wd/12,h=w.map(x=>x*init),ret=[],val=[init],inv=[init];let tot=init,wsum=0,dep=0;
+function path(w,rs,mode,init,c,wd,g=0){const n=rs.length,h=w.map(x=>x*init),ret=[],val=[init],inv=[init];let tot=init,wsum=0,dep=0;
 for(let t=0;t<n;t++){let s0=0,s1=0;for(let k=0;k<4;k++)s0+=h[k];
 if(s0<=1e-9){ret.push(0);val.push(0);inv.push(tot);continue}
 for(let k=0;k<4;k++){h[k]*=1+rs[t][k];s1+=h[k]}
 ret.push(s1/s0-1);
 if(mode&&(t+1)%mode==0)for(let k=0;k<4;k++)h[k]=s1*w[k];
 if(t<n-1){if(c){for(let k=0;k<4;k++)h[k]+=c*w[k];tot+=c;s1+=c}
-if(m){if(m>=s1){wsum+=s1;h.fill(0);s1=0;dep=t+1}else{const f=1-m/s1;for(let k=0;k<4;k++)h[k]*=f;s1-=m;wsum+=m}}}
+const m=wd/12*(1+g)**Math.floor(t/12);if(m){if(m>=s1){wsum+=s1;h.fill(0);s1=0;dep=t+1}else{const f=1-m/s1;for(let k=0;k<4;k++)h[k]*=f;s1-=m;wsum+=m}}}
 val.push(s1);inv.push(tot)}
 return{ret,val,inv,wsum,dep}}
 
-function sim(wa,wb,H,em,hm,mode,init,c,wd){const P=2000,n=R.length,r=rng(2024),Z=[wa,wb],m=wd/12,inv=init+c*(H-1);
+function sim(wa,wb,H,em,hm,mode,init,c,wd,g=0){const P=2000,n=R.length,r=rng(2024),Z=[wa,wb],inv=init+c*(H-1);
 const F=()=>[new Float64Array(P),new Float64Array(P)],val=[0,1].map(()=>[...Array(H+1)].map(()=>new Float64Array(P))),fin=F(),md=F(),ls=F(),dp=F();
 for(let p=0;p<P;p++){const h=Z.map(w=>w.map(x=>x*init)),ix=[1,1],pk=[1,1],dd=[0,0],dead=[0,0],ws=[0,0];val[0][0][p]=val[1][0][p]=init;
-for(let t=0;t<H;t++){const row=R[Math.floor(r()*n)];
+for(let t=0;t<H;t++){const row=R[Math.floor(r()*n)],m=wd/12*(1+g)**Math.floor(t/12);
 for(let z=0;z<2;z++){if(dead[z])continue;
 const w=Z[z],hh=h[z];let s0=0,s1=0;
 for(let k=0;k<4;k++){s0+=hh[k];hh[k]*=1+row[k]-hm[k]+em[k];s1+=hh[k]}
@@ -153,17 +154,17 @@ return{S:[st(0),st(1)],f:[fan(0),fan(1)],inv}}
 
 function update(){save();buildR(Math.max(0,Math.min(100,+$('wht').value||0))/100);const c=base(),{w:wa,tot}=wA(),wb=wB(),init=tot>0?tot:100;
 let rows=R,dts=DT;const w=+$('win').value;if(w&&w<R.length){rows=R.slice(-w);dts=DT.slice(-w)}
-const mode=+$('rb').value,ctb=Math.max(0,+$('ctb').value||0),wd=Math.max(0,+$('wd').value||0),n=rows.length,all=[D0,...DT],st=all[all.length-1-n],d1=dts[n-1];
+const mode=+$('rb').value,ctb=Math.max(0,+$('ctb').value||0),wd=Math.max(0,+$('wd').value||0),g=(+$('wdg').value||0)/100,n=rows.length,all=[D0,...DT],st=all[all.length-1-n],d1=dts[n-1];
 $('span').textContent=`回測期間 ${st} ~ ${d1}，共 ${n} 個月`;
 $('ht').textContent=`歷史回測${$('dir').value=='rev'?'（反推）':''}：${st} → ${d1}（${(n/12).toFixed(1)} 年）`;
 const hm=N.map((_,k)=>mean(R.map(r=>r[k])));
 const L=a=>a[a.length-1],rev=$('dir').value=='rev';
-const solve=w=>{let lo=0,hi=init*1000;for(let i=0;i<80;i++){const m=(lo+hi)/2;L(path(w,rows,mode,m,ctb,wd).val)<init?lo=m:hi=m}return hi};
+const solve=w=>{let lo=0,hi=init*1000;for(let i=0;i<80;i++){const m=(lo+hi)/2;L(path(w,rows,mode,m,ctb,wd,g).val)<init?lo=m:hi=m}return hi};
 const iA=rev?solve(wa):init,iB=rev?solve(wb):init;
 $('rvn').textContent=rev&&Math.min(iA,iB)<init*1e-6?'只靠每月定期投入，期末就已超過今天的淨值，所以當年不需要期初投入（期末資產會高於今天淨值）。':'';
-const PA=path(wa,rows,mode,iA,ctb,wd),PB=path(wb,rows,mode,iB,ctb,wd),A=met(PA.ret),B=met(PB.ret);
+const PA=path(wa,rows,mode,iA,ctb,wd,g),PB=path(wb,rows,mode,iB,ctb,wd,g),A=met(PA.ret),B=met(PB.ret);
 const ab=v=>{let pk=0;return v.map(x=>(pk=Math.max(pk,x),x-pk))},dA=ab(PA.val),dB=ab(PB.val);
-const irr=P=>{if(P.dep)return NaN;const m=P.ret.length,nf=ctb-wd/12;let lo=-.5,hi=.5;const f=r=>{let s=-P.val[0]+P.val[m]/(1+r)**m;for(let t=1;t<m;t++)s-=nf/(1+r)**t;return s};for(let i=0;i<60;i++){const x=(lo+hi)/2;f(x)>0?lo=x:hi=x}return(1+lo)**12-1};
+const irr=P=>{if(P.dep)return NaN;const m=P.ret.length;let lo=-.5,hi=.5;const f=r=>{let s=-P.val[0]+P.val[m]/(1+r)**m;for(let t=1;t<m;t++)s-=(ctb-wd/12*(1+g)**Math.floor((t-1)/12))/(1+r)**t;return s};for(let i=0;i<60;i++){const x=(lo+hi)/2;f(x)>0?lo=x:hi=x}return(1+lo)**12-1};
 const yy=DT[DT.length-1].slice(0,4),yR=R.filter((_,i)=>DT[i].startsWith(yy)),ytd=w=>L(path(w,yR,mode,1,0,0).val)-1;
 const hr=[rev?[`當年需投入（${st}）`,iA,iB,fm,0]:[`起始資產（${st}）`,init,init,fm,null],...(rev?[['成長倍數（今天÷當年）',init/iA,init/iB,x=>x.toFixed(2)+' 倍',1]]:[]),[`YTD（${yy} 年至 ${DT[DT.length-1]}）`,ytd(wa),ytd(wb),fp,1],['年化報酬 (CAGR)',A.cagr,B.cagr,fp,1],['年化波動',A.vol,B.vol,fp,0],['最大回撤',A.dd,B.dd,fp,1],['最差 12 個月',A.w12,B.w12,fp,1],['最差單月',A.worst,B.worst,fp,1],[`期末資產（${d1}）`,L(PA.val),L(PB.val),fm,1],['最大回撤金額',Math.min(...dA),Math.min(...dB),fm,1]];
 if(ctb>0)hr.push(['累計投入',L(PA.inv),L(PB.inv),fm,null]);
@@ -182,7 +183,7 @@ mk('c2',{type:'line',data:{labels:lab,datasets:[{label:'A 調整前',data:dA,bor
 const Y=Math.max(1,Math.min(50,Math.round(+$('yrs').value)||10)),H=Y*12,yl=`（${Y} 年後）`;
 $('ft').textContent=`未來模擬：今天起 ${Y} 年後`;
 const em=hm;
-const S=sim(wa,wb,H,em,hm,mode,init,ctb,wd),[sa,sb]=S.S;
+const S=sim(wa,wb,H,em,hm,mode,init,ctb,wd,g),[sa,sb]=S.S;
 const fr=[[`整體虧損機率（總投入 ${fm(S.inv)}）`,sa.loss,sb.loss,fp,0,1]];
 if(wd>0)fr.push(['資產耗盡機率',sa.dep,sb.dep,fp,0,1]);
 fr.push(['最大回撤 P5（最糟 5%）',sa.mdd5,sb.mdd5,fp,1],['最大回撤中位數',sa.mdd,sb.mdd,fp,1],['終值 P5 差的 5%'+yl,sa.p5,sb.p5,fm,1],['終值中位數'+yl,sa.med,sb.med,fm,1],['終值 P95 好的 5%'+yl,sa.p95,sb.p95,fm,1]);
@@ -198,7 +199,7 @@ mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1
 function showB(){const a=N.map((_,i)=>+$('wa'+i).value||0),tot=a.reduce((x,y)=>x+y,0),w=wB();
 N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i];$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}）`});
 $('sb').textContent+='｜總額 '+fm(tot);
-const wd=+$('wd').value||0;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）`:''}
+const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('yrs').value||10;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，${Y} 年後約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>o[e.id]=e.value);localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const e=$(k);if(e)e.value=o[k]}}catch(e){}}
 
