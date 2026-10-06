@@ -29,6 +29,9 @@ th,td{padding:7px 8px;border-bottom:1px solid var(--bd);text-align:right;white-s
 th:first-child,td:first-child{text-align:left}
 th{color:var(--mu);font-weight:500;font-size:13px}th.a{color:var(--a)}th.b{color:var(--b)}
 .good{color:var(--good);font-weight:600}
+.tabs{display:flex;gap:2px;margin:0 0 10px;background:var(--card);border:1px solid var(--bd);border-radius:9px;padding:2px}
+.tabs button{flex:1;font:inherit;font-size:14px;line-height:1.2;font-weight:600;padding:5px 8px;border:0;border-radius:7px;background:transparent;color:var(--mu);cursor:pointer}
+.tabs button.on{background:var(--tx);color:var(--card)}
 .sl{margin-top:14px}.sl b{font-size:16px}
 input[type=range]{width:100%;height:32px;margin:4px 0 0;padding:0;border:0;background:transparent;accent-color:var(--b)}
 .bad{color:var(--bad);font-weight:600}
@@ -54,26 +57,32 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="pb"><h2>B 調整後：目標比例（%）</h2><div id="wb"></div><div class="sum" id="sb"></div></div>
 </div>
 <div class="note">B 會用 A 的總淨值重新配置。輸入只存在你這支手機的瀏覽器裡。</div>
+<div class="row"><label>今年年紀</label><input type="number" id="age" value="38" min="0" max="120" step="1" inputmode="numeric"></div>
 <div class="row"><label>歷史試算方向<div class="sum">反推：以今天淨值為終點，算當年需投入多少</div></label><select id="dir"><option value="fwd" selected>正推（今天淨值當起點）</option><option value="rev">反推（今天淨值當終點）</option></select></div>
 <div class="row"><label>再平衡方式</label><select id="rb"><option value="1">每月再平衡</option><option value="3">每季再平衡</option><option value="6">每半年再平衡</option><option value="12" selected>每年再平衡</option><option value="0">不再平衡（買進持有）</option></select></div>
 </div>
 
+<div class="tabs"><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
+<section id="tabF">
 <div class="card"><h2 id="ft">未來模擬</h2><div class="tw"><table id="t2"></table></div>
 <div class="note">用歷史月報酬 bootstrap（同月資產一起抽，保留相關性與匯率）。A、B 使用同一批抽樣，差異只來自配置。終值＝今天起算第 N 年底的資產；整體虧損＝期末資產加上已提領金額，仍低於總投入。</div></div>
 <div class="card"><h2>未來資產分布（P5 / 中位數 / P95，萬台幣）</h2><div class="ch" style="height:300px"><canvas id="c3"></canvas></div><div class="note" id="dpn" style="color:var(--bad)"></div>
-<div class="sl"><div class="row"><label>未來模擬年數</label><b id="fyrv"></b></div><input type="range" id="fyr" min="5" max="50" step="1" value="40"></div>
-<div class="sl"><div class="row"><label>每年提領（萬，第一年）</label><b id="wdv"></b></div><input type="range" id="wd" min="50" max="300" step="1" value="200"><div class="sum" id="wdp"></div></div>
-<div class="sl"><div class="row"><label>提領年增率<div class="sum">每 12 個月調高一次，反映通膨</div></label><b id="wdgv"></b></div><input type="range" id="wdg" min="0" max="10" step="1" value="3"></div>
+<div class="sl"><div class="row"><label>未來模擬年數</label><b id="fyrv"></b></div><input type="range" id="fyr" min="5" max="50" step="1" value="50"></div>
+<div class="sl"><div class="row"><label>每年提領（萬，第一年）</label><b id="wdv"></b></div><input type="range" id="wd" min="50" max="300" step="10" value="200"><div class="sum" id="wdp"></div></div>
+<div class="sl"><div class="row"><label>提領年增率<div class="sum">每 12 個月調高一次，反映通膨</div></label><b id="wdgv"></b></div><input type="range" id="wdg" min="0" max="20" step="1" value="3"></div>
 <div class="note">價格已是含息報酬（股息自動再投入），模型不會另外發股息給你。每年提領＝你每年從組合拿出來花的全部現金（含股息）。實際操作時，需要賣出的金額＝提領金額 − 當年除息領到的股息，不要把股息另外加在提領之外。</div></div>
+</section>
+<section id="tabH" style="display:none">
 <div class="card"><h2 id="ht">歷史回測</h2><div class="tw"><table id="t1"></table></div><div class="note" id="rvn" style="color:var(--b)"></div>
-<div class="sl"><div class="row"><label>歷史回測區間</label><b id="winv"></b></div><input type="range" id="winy" min="1" max="20" step="1" value="10"></div>
-<div class="note">報酬、波動、回撤為時間加權；金額以你輸入的總淨值為起點；定期投入在月底、按目標比例買進；未計交易成本與稅；VT 已依每次實際配息扣除 30% 股息預扣稅；IEF、0050 的稅負（預扣稅、二代健保）未計。綠色為較佳者。<br>期末資產＝回測最後一個月的資產。提領金額每 12 個月依提領年增率調高，每月底提領當年金額的 1/12、按當時比例賣出；有投入或提領時，回撤金額會含現金流影響。</div></div>
+<div class="sl"><div class="row"><label>歷史回測區間</label><b id="winv"></b></div><input type="range" id="winz" min="1" max="20" step="1" value="10"></div>
+<div class="note">報酬、波動、拉回為時間加權；金額以你輸入的總淨值為起點；定期投入在月底、按目標比例買進；未計交易成本與稅；VT 已依每次實際配息扣除 30% 股息預扣稅；IEF、0050 的稅負（預扣稅、二代健保）未計。綠色為較佳者。<br>期末資產＝回測最後一個月的資產。提領金額每 12 個月依提領年增率調高，每月底提領當年金額的 1/12、按當時比例賣出；有投入或提領時，拉回金額會含現金流影響。</div></div>
 <div class="card"><h2>資產總值（萬台幣）</h2><div class="ch"><canvas id="c1"></canvas></div></div>
 <div class="card"><h2>距高點虧損金額（萬台幣，以資產總值計）</h2><div class="ch"><canvas id="c2"></canvas></div></div>
 
 <details class="card"><summary>資料檢核：各標的原幣 vs 台幣（<span id="tvh"></span>）</summary>
 <div class="tw"><table id="tv"></table></div>
 <div class="note">價格為含息還原價，所以期初價會比當年實際報價低。台幣年化＝美元價格 × 當月底 USD/TWD 後計算；0050 本來就是台幣。可拿原幣年化去和 Yahoo Finance、Portfolio Visualizer 等來源對照。</div></details>
+</section>
 <div class="sub" id="src"></div>
 </main>
 <script>
@@ -135,8 +144,8 @@ val.push(s1);inv.push(tot)}
 return{ret,val,inv,wsum,dep}}
 
 function sim(wa,wb,H,em,hm,mode,init,c,wd,g=0){const P=2000,n=R.length,r=rng(2024),Z=[wa,wb],inv=init+c*(H-1);
-const F=()=>[new Float64Array(P),new Float64Array(P)],val=[0,1].map(()=>[...Array(H+1)].map(()=>new Float64Array(P))),fin=F(),md=F(),ls=F(),dp=F();
-for(let p=0;p<P;p++){const h=Z.map(w=>w.map(x=>x*init)),ix=[1,1],pk=[1,1],dd=[0,0],dead=[0,0],ws=[0,0];val[0][0][p]=val[1][0][p]=init;
+const F=()=>[new Float64Array(P),new Float64Array(P)],val=[0,1].map(()=>[...Array(H+1)].map(()=>new Float64Array(P))),fin=F(),md=F(),ma=F(),ls=F(),dp=F();
+for(let p=0;p<P;p++){const h=Z.map(w=>w.map(x=>x*init)),ix=[1,1],pk=[1,1],dd=[0,0],dead=[0,0],ws=[0,0],pv=[init,init],da=[0,0];val[0][0][p]=val[1][0][p]=init;
 for(let t=0;t<H;t++){const row=R[Math.floor(r()*n)],m=wd/12*(1+g)**Math.floor(t/12);
 for(let z=0;z<2;z++){if(dead[z])continue;
 const w=Z[z],hh=h[z];let s0=0,s1=0;
@@ -145,15 +154,15 @@ ix[z]*=s1/s0;pk[z]=Math.max(pk[z],ix[z]);dd[z]=Math.min(dd[z],ix[z]/pk[z]-1);
 if(mode&&(t+1)%mode==0)for(let k=0;k<4;k++)hh[k]=s1*w[k];
 if(t<H-1){if(c){for(let k=0;k<4;k++)hh[k]+=c*w[k];s1+=c}
 if(m){if(m>=s1){ws[z]+=s1;hh.fill(0);s1=0;dead[z]=1}else{const f=1-m/s1;for(let k=0;k<4;k++)hh[k]*=f;s1-=m;ws[z]+=m}}}
-val[z][t+1][p]=s1}}
-for(let z=0;z<2;z++){fin[z][p]=val[z][H][p];md[z][p]=dd[z];ls[z][p]=fin[z][p]+ws[z]<inv-1e-9?1:0;dp[z][p]=dead[z]}}
+pv[z]=Math.max(pv[z],s1);da[z]=Math.min(da[z],s1-pv[z]);val[z][t+1][p]=s1}}
+for(let z=0;z<2;z++){fin[z][p]=val[z][H][p];md[z][p]=dd[z];ma[z][p]=da[z];ls[z][p]=fin[z][p]+ws[z]<inv-1e-9?1:0;dp[z][p]=dead[z]}}
 const q=(a,x)=>Float64Array.from(a).sort()[Math.floor(x*P)];
-const st=z=>({p5:q(fin[z],.05),med:q(fin[z],.5),p95:q(fin[z],.95),loss:mean(ls[z]),dep:mean(dp[z]),mdd:q(md[z],.5),mdd5:q(md[z],.05)});
+const st=z=>({p5:q(fin[z],.05),med:q(fin[z],.5),p95:q(fin[z],.95),loss:mean(ls[z]),dep:mean(dp[z]),mdd:q(md[z],.5),mdd5:q(md[z],.05),mda:q(ma[z],.5),mda5:q(ma[z],.05)});
 const fan=z=>{const o=[[],[],[]];for(const a of val[z]){const s=Float64Array.from(a).sort();[.05,.5,.95].forEach((x,i)=>o[i].push(s[Math.floor(x*P)]))}return o};
 return{S:[st(0),st(1)],f:[fan(0),fan(1)],inv}}
 
 function update(){save();buildR(.3);const c=base(),{w:wa,tot}=wA(),wb=wB(),init=tot>0?tot:100;
-let rows=R,dts=DT;const wy=+$('winy').value,w=wy>Math.floor(R.length/12)?0:wy*12;if(w&&w<R.length){rows=R.slice(-w);dts=DT.slice(-w)}
+let rows=R,dts=DT;const wy=+$('winz').value,w=wy>Math.floor(R.length/12)?0:wy*12;if(w&&w<R.length){rows=R.slice(-w);dts=DT.slice(-w)}
 const mode=+$('rb').value,ctb=0,wd=Math.max(0,+$('wd').value||0),g=(+$('wdg').value||0)/100,n=rows.length,all=[D0,...DT],st=all[all.length-1-n],d1=dts[n-1];
 $('span').textContent=`回測期間 ${st} ~ ${d1}，共 ${n} 個月`;
 $('ht').textContent=`歷史回測${$('dir').value=='rev'?'（反推）':''}：${st} → ${d1}（${(n/12).toFixed(1)} 年）`;
@@ -166,13 +175,13 @@ const PA=path(wa,rows,mode,iA,ctb,wd,g),PB=path(wb,rows,mode,iB,ctb,wd,g),A=met(
 const ab=v=>{let pk=0;return v.map(x=>(pk=Math.max(pk,x),x-pk))},dA=ab(PA.val),dB=ab(PB.val);
 const irr=P=>{if(P.dep)return NaN;const m=P.ret.length;let lo=-.5,hi=.5;const f=r=>{let s=-P.val[0]+P.val[m]/(1+r)**m;for(let t=1;t<m;t++)s-=(ctb-wd/12*(1+g)**Math.floor((t-1)/12))/(1+r)**t;return s};for(let i=0;i<60;i++){const x=(lo+hi)/2;f(x)>0?lo=x:hi=x}return(1+lo)**12-1};
 const yy=DT[DT.length-1].slice(0,4),yR=R.filter((_,i)=>DT[i].startsWith(yy)),ytd=w=>L(path(w,yR,mode,1,0,0).val)-1;
-const hr=[rev?[`當年需投入（${st}）`,iA,iB,fm,0]:[`起始資產（${st}）`,init,init,fm,null],...(rev?[['成長倍數（今天÷當年）',init/iA,init/iB,x=>x.toFixed(2)+' 倍',1]]:[]),[`YTD（${yy} 年至 ${DT[DT.length-1]}）`,ytd(wa),ytd(wb),fp,1],['年化報酬 (CAGR)',A.cagr,B.cagr,fp,1],['年化波動',A.vol,B.vol,fp,0],['最大回撤',A.dd,B.dd,fp,1],['最差 12 個月',A.w12,B.w12,fp,1],['最差單月',A.worst,B.worst,fp,1],[`期末資產（${d1}）`,L(PA.val),L(PB.val),fm,1],['最大回撤金額',Math.min(...dA),Math.min(...dB),fm,1]];
+const hr=[rev?[`當年需投入（${st}）`,iA,iB,fm,0]:[`起始資產（${st}）`,init,init,fm,null],...(rev?[['成長倍數（今天÷當年）',init/iA,init/iB,x=>x.toFixed(2)+' 倍',1]]:[]),[`YTD（${yy} 年至 ${DT[DT.length-1]}）`,ytd(wa),ytd(wb),fp,1],['年化報酬 (CAGR)',A.cagr,B.cagr,fp,1],['年化波動',A.vol,B.vol,fp,0],['最大拉回',A.dd,B.dd,fp,1],['最差 12 個月',A.w12,B.w12,fp,1],['最差單月',A.worst,B.worst,fp,1],[`期末資產（${d1}）`,L(PA.val),L(PB.val),fm,1],['最大拉回金額',Math.min(...dA),Math.min(...dB),fm,1]];
 if(ctb>0)hr.push(['累計投入',L(PA.inv),L(PB.inv),fm,null]);
 if(wd>0)hr.push(['累計提領',PA.wsum,PB.wsum,fm,null],['資產是否耗盡',PA.dep?1:0,PB.dep?1:0,x=>x?'是':'否',0]);
 if(ctb>0||wd>0)hr.push(['資金加權年化報酬',irr(PA),irr(PB),fp,1]);
 table('t1',hr);
 {const s0=RAW[RAW.length-1-n],s1=RAW[RAW.length-1],cg=(a,b)=>(b/a)**(12/n)-1;
-let h='<tr><th>標的</th><th>期初價</th><th>期末價</th><th>原幣年化</th><th>台幣年化（稅前）</th><th>台幣最大回撤</th></tr>';
+let h='<tr><th>標的</th><th>期初價</th><th>期末價</th><th>原幣年化</th><th>台幣年化（稅前）</th><th>台幣最大拉回</th></tr>';
 N.forEach((nm,k)=>{const usd=k<3,a=s0[k+1],b=s1[k+1];h+=`<tr><td>${nm}${usd?'（美元）':'（台幣）'}</td><td>${a.toFixed(2)}</td><td>${b.toFixed(2)}</td><td>${pct(cg(a,b))}</td><td>${pct(usd?cg(a*s0[5],b*s1[5]):cg(a,b))}</td><td>${pct(met(rows.map(r=>r[k])).dd)}</td></tr>`});
 h+=`<tr><td>USD/TWD 匯率</td><td>${s0[5].toFixed(2)}</td><td>${s1[5].toFixed(2)}</td><td>${pct(cg(s0[5],s1[5]))}</td><td colspan="2" style="text-align:left">正值＝台幣貶值（美元資產加分）</td></tr>`;
 $('tv').innerHTML=h;$('tvh').textContent=`${s0[0]} → ${s1[0]}`}
@@ -180,22 +189,22 @@ const lab=['起點',...dts],gd=[{label:'A 調整前',data:PA.val,borderColor:c.a
 if(ctb>0)gd.push({label:'累計投入',data:PA.inv,borderColor:'#8888',borderDash:[5,4],borderWidth:1.5});
 mk('c1',{type:'line',data:{labels:lab,datasets:gd},options:opt(kt,fm,'萬台幣')});
 mk('c2',{type:'line',data:{labels:lab,datasets:[{label:'A 調整前',data:dA,borderColor:c.a,borderWidth:1.5,fill:true,backgroundColor:c.a+'22'},{label:'B 調整後',data:dB,borderColor:c.b,borderWidth:1.5,fill:true,backgroundColor:c.b+'22'}]},options:opt(kt,fm,'萬台幣')});
-const Y=Math.max(5,Math.min(50,Math.round(+$('fyr').value)||40)),H=Y*12,yl=`（${Y} 年後）`;
-$('ft').textContent=`未來模擬：今天起 ${Y} 年後`;
+const Y=Math.max(5,Math.min(50,Math.round(+$('fyr').value)||50)),H=Y*12,A0=Math.max(0,Math.round(+$('age').value||38)),yl=`（${A0+Y} 歲）`;
+$('ft').textContent=`未來模擬：今天 ${A0} 歲起 ${Y} 年（到 ${A0+Y} 歲）`;
 const em=hm;
 const S=sim(wa,wb,H,em,hm,mode,init,ctb,wd,g),[sa,sb]=S.S;
 const fr=[[`整體虧損機率（總投入 ${fm(S.inv)}）`,sa.loss,sb.loss,fp,0,1]];
 if(wd>0)fr.push(['資產耗盡機率',sa.dep,sb.dep,fp,0,1]);
-fr.push(['最大回撤 P5（最糟 5%）',sa.mdd5,sb.mdd5,fp,1],['最大回撤中位數',sa.mdd,sb.mdd,fp,1],['終值 P5 差的 5%'+yl,sa.p5,sb.p5,fm,1],['終值中位數'+yl,sa.med,sb.med,fm,1],['終值 P95 好的 5%'+yl,sa.p95,sb.p95,fm,1]);
+fr.push(['最大拉回 P5（最糟 5%）',sa.mdd5,sb.mdd5,fp,1],['最大拉回金額 P5（最糟 5%）',sa.mda5,sb.mda5,fm,1],['最大拉回中位數',sa.mdd,sb.mdd,fp,1],['最大拉回金額中位數',sa.mda,sb.mda,fm,1]);
 table('t2',fr);
-const ys=Y>20?5:Y>10?2:1,XL=[...Array(H+1).keys()].map(i=>i%12||(i/12)%ys?'':(i/12)+'年');
+const ys=Y>20?5:Y>10?2:1,XL=[...Array(H+1).keys()].map(i=>i%12||(i/12)%ys?'':(A0+i/12)+'歲');
 const ds=(f,col,nm)=>[{label:'_'+nm+' P5',data:f[0],borderColor:'transparent',fill:false},{label:'_'+nm+' P95',data:f[2],borderColor:'transparent',backgroundColor:col+'30',fill:'-1'},{label:nm+' 中位數',data:f[1],borderColor:col,borderWidth:2}];
 const o3=opt(kt,fm,'萬台幣');o3.scales.x.ticks={autoSkip:false,maxRotation:0};
 const now=new Date(),ord=[0,2,1,3,5,4],p2=x=>String(x).padStart(2,'0');
 o3.plugins.tooltip.itemSort=(a,b)=>ord[a.datasetIndex]-ord[b.datasetIndex];
-o3.plugins.tooltip.callbacks.title=it=>{const i=it[0].dataIndex,y=now.getFullYear(),m=now.getMonth()+i,d=Math.min(now.getDate(),new Date(y,m+1,0).getDate()),t=new Date(y,m,d);return `${t.getFullYear()}/${p2(t.getMonth()+1)}/${p2(t.getDate())}（第 ${Math.floor(i/12)} 年 ${i%12} 個月）`};
+o3.plugins.tooltip.callbacks.title=it=>{const i=it[0].dataIndex,y=now.getFullYear(),m=now.getMonth()+i,t=new Date(y,m,1);return `${A0+Math.floor(i/12)} 歲${i%12?` ${i%12} 個月`:''}（${t.getFullYear()}/${p2(t.getMonth()+1)}）`};
 const zf=(f,k)=>{const i=f[k].findIndex(v=>v<=1e-9);return i<0?null:i},a5=zf(S.f[0],0),b5=zf(S.f[1],0),a50=zf(S.f[0],1),b50=zf(S.f[1],1);
-const mn=(x,y)=>x==null?y:y==null?x:Math.min(x,y),r5=mn(a5,b5),r50=mn(a50,b50),yt=i=>i==null?'未發生':`第 ${(i/12).toFixed(1)} 年`;
+const mn=(x,y)=>x==null?y:y==null?x:Math.min(x,y),r5=mn(a5,b5),r50=mn(a50,b50),yt=i=>i==null?'未發生':`約 ${A0+Math.floor(i/12)} 歲`;
 $('dpn').textContent=r5==null?'':`紅色區：至少 5% 的情境已把錢用完（A ${yt(a5)}、B ${yt(b5)}）`+(r50==null?'':`；深紅區：過半情境已用完（A ${yt(a50)}、B ${yt(b50)}）`);
 const shade={id:'dep',beforeDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{x}}=ch,box=(i,col)=>{if(i==null)return;const x0=x.getPixelForValue(i);ctx.save();ctx.fillStyle=col;ctx.fillRect(x0,ca.top,ca.right-x0,ca.bottom-ca.top);ctx.restore()};box(r5,'rgba(220,50,40,.12)');box(r50,'rgba(220,50,40,.20)')}};
 mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1],c.b,'B')]},options:o3,plugins:[shade]})}
@@ -203,20 +212,24 @@ mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1
 function showB(){const a=N.map((_,i)=>+$('wa'+i).value||0),tot=a.reduce((x,y)=>x+y,0),w=wB();
 N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i];$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}）`});
 $('sb').textContent+='｜總額 '+fm(tot);
-$('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winy').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
-const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||40;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，${Y} 年後約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
+$('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winz').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
+const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，到 ${(Math.round(+$('age').value)||38)+Y} 歲時約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
+function tab(k){['F','H'].forEach(x=>{$('tab'+x).style.display=x==k?'':'none';$('tb'+x).classList.toggle('on',x==k)});try{localStorage.setItem('pc4tab',k)}catch(e){}
+Object.values(charts).forEach(c=>c.resize&&c.resize())}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>o[e.id]=e.value);localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const e=$(k);if(e)e.value=o[k]}}catch(e){}}
 
 function init(){
 if(DATA){NM=DATA.names;N=NM.map(x=>x.split(' ')[0]);DY=DATA.divVT||null;setRows(DATA.rows);$('src').textContent=`資料來源：${DATA.source}；更新日 ${DATA.updated}；各標的最新價日期：${Object.entries(DATA.asof||{}).map(([k,v])=>k+' '+v).join('、')}。美元資產以當月底 USD/TWD 換算成台幣。`}
 else{setRows(demoRows());$('warn').style.display='block'}
-$('winy').max=Math.floor(R.length/12)+1;
+$('winz').max=Math.floor(R.length/12)+1;$('winz').value=$('winz').max;
 const wi=(p,d,u)=>{$(p).innerHTML=NM.map((n,i)=>`<div class="row"><label>${n}${p=='wb'?`<div class="sum" id="bm${i}"></div>`:''}</label><span><input type="number" id="${p}${i}" value="${d[i]}" min="0" step="any" inputmode="decimal"> ${u}</span></div>`).join('')};
 wi('wa',[30,50,100,70],'萬');wi('wb',[15,10,50,25],'%');
 restore();
 document.querySelectorAll('input[type=number],input[type=range],select').forEach(e=>e.addEventListener('input',()=>{showB();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
+$('tbF').onclick=()=>tab('F');$('tbH').onclick=()=>tab('H');
+try{tab(localStorage.getItem('pc4tab')||'F')}catch(e){tab('F')}
 update();showB()}
 init();
 </script>
