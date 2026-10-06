@@ -127,7 +127,7 @@ $(id).innerHTML=h}
 function mk(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart($(id),cfg)}
 function base(){const st=getComputedStyle(document.documentElement);Chart.defaults.color=st.getPropertyValue('--mu').trim()||'#888';Chart.defaults.borderColor=st.getPropertyValue('--bd').trim()||'#ddd';
 return{a:st.getPropertyValue('--a').trim()||'#4a6fa5',b:st.getPropertyValue('--b').trim()||'#e8833a'}}
-const kt=v=>Math.round(v).toLocaleString('en-US'),pt=v=>v.toFixed(1)+'%';
+const kt=v=>String(Math.round(v)),pt=v=>v.toFixed(1)+'%';
 const opt=(y,tt,t)=>({responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},elements:{point:{radius:0}},
 scales:{x:{ticks:{maxTicksLimit:6,autoSkip:true}},y:{title:{display:!!t,text:t},ticks:{callback:y}}},
 plugins:{legend:{labels:{boxWidth:14,filter:i=>!i.text.startsWith('_')}},tooltip:{callbacks:{label:i=>i.dataset.label.replace(/^_/,'')+'：'+tt(i.parsed.y)}}}});
@@ -199,14 +199,15 @@ fr.push(['最大拉回 P5（最糟 5%）',sa.mdd5,sb.mdd5,fp,1],['最大拉回�
 table('t2',fr);
 const ys=Y>20?5:Y>10?2:1,XL=[...Array(H+1).keys()].map(i=>i%12||(i/12)%ys?'':(A0+i/12)+'歲');
 const ds=(f,col,nm)=>[{label:'_'+nm+' P5',data:f[0],borderColor:'transparent',fill:false},{label:'_'+nm+' P95',data:f[2],borderColor:'transparent',backgroundColor:col+'30',fill:'-1'},{label:nm+' 中位數',data:f[1],borderColor:col,borderWidth:2}];
-const o3=opt(kt,fm,'萬台幣');o3.scales.x.ticks={autoSkip:false,maxRotation:0};
+const o3=opt(kt,fm,'萬台幣');o3.scales.x.ticks={autoSkip:false,maxRotation:0};o3.scales.y.title={display:false};o3.scales.y.beginAtZero=true;o3.scales.y.border={display:true};o3.scales.y.ticks={callback:v=>v===0?'0':''};
 const now=new Date(),ord=[0,2,1,3,5,4],p2=x=>String(x).padStart(2,'0');
 o3.plugins.tooltip.itemSort=(a,b)=>ord[a.datasetIndex]-ord[b.datasetIndex];
 o3.plugins.tooltip.callbacks.title=it=>{const i=it[0].dataIndex,y=now.getFullYear(),m=now.getMonth()+i,t=new Date(y,m,1);return `${A0+Math.floor(i/12)} 歲${i%12?` ${i%12} 個月`:''}（${t.getFullYear()}/${p2(t.getMonth()+1)}）`};
 const zf=(f,k)=>{const i=f[k].findIndex(v=>v<=1e-9);return i<0?null:i},a5=zf(S.f[0],0),b5=zf(S.f[1],0),a50=zf(S.f[0],1),b50=zf(S.f[1],1);
 const mn=(x,y)=>x==null?y:y==null?x:Math.min(x,y),r5=mn(a5,b5),r50=mn(a50,b50),yt=i=>i==null?'未發生':`約 ${A0+Math.floor(i/12)} 歲`;
 $('dpn').textContent=r5==null?'':`紅色區：至少 5% 的情境已把錢用完（A ${yt(a5)}、B ${yt(b5)}）`+(r50==null?'':`；深紅區：過半情境已用完（A ${yt(a50)}、B ${yt(b50)}）`);
-const shade={id:'dep',beforeDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{x}}=ch,box=(i,col)=>{if(i==null)return;const x0=x.getPixelForValue(i);ctx.save();ctx.fillStyle=col;ctx.fillRect(x0,ca.top,ca.right-x0,ca.bottom-ca.top);ctx.restore()};box(r5,'rgba(220,50,40,.12)');box(r50,'rgba(220,50,40,.20)')}};
+const shade={id:'dep',beforeDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{x}}=ch,box=(i,col)=>{if(i==null)return;const x0=x.getPixelForValue(i);ctx.save();ctx.fillStyle=col;ctx.fillRect(x0,ca.top,ca.right-x0,ca.bottom-ca.top);ctx.restore()};box(r5,'rgba(220,50,40,.12)');box(r50,'rgba(220,50,40,.20)')},
+afterDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{y}}=ch,py=y.getPixelForValue(0);ctx.save();ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--tx').trim()||'#888';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(ca.left,py);ctx.lineTo(ca.right,py);ctx.stroke();ctx.restore()}};
 mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1],c.b,'B')]},options:o3,plugins:[shade]})}
 
 function showB(){const a=N.map((_,i)=>+$('wa'+i).value||0),tot=a.reduce((x,y)=>x+y,0),w=wB();
