@@ -53,10 +53,10 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 
 <div class="card">
 <div class="grid">
-<div class="pa"><h2>A 調整前：目前持有（萬台幣）</h2><div id="wa"></div><div class="sum" id="sa"></div></div>
+<div class="pa"><h2>A 調整前：目前持有（股數）</h2><div id="wa"></div><div class="sum" id="sa"></div></div>
 <div class="pb"><h2>B 調整後：目標比例（%）</h2><div id="wb"></div><div class="sum" id="sb"></div></div>
 </div>
-<div class="note">B 會用 A 的總淨值重新配置。輸入只存在你這支手機的瀏覽器裡。</div>
+<div class="note">A 以最新收盤價與匯率換算成台幣；B 會用 A 的總淨值重新配置，括號內是要買賣的金額與股數。輸入只存在你這支手機的瀏覽器裡。</div>
 <div class="row"><label>今年年紀</label><input type="number" id="age" value="38" min="0" max="120" step="1" inputmode="numeric"></div>
 <div class="row"><label>歷史試算方向<div class="sum">反推：以今天淨值為終點，算當年需投入多少</div></label><select id="dir"><option value="fwd" selected>正推（今天淨值當起點）</option><option value="rev">反推（今天淨值當終點）</option></select></div>
 <div class="row"><label>再平衡方式</label><select id="rb"><option value="1">每月再平衡</option><option value="3">每季再平衡</option><option value="6">每半年再平衡</option><option value="12" selected>每年再平衡</option><option value="0">不再平衡（買進持有）</option></select></div>
@@ -75,7 +75,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <section id="tabH" style="display:none">
 <div class="card"><h2 id="ht">歷史回測</h2><div class="tw"><table id="t1"></table></div><div class="note" id="rvn" style="color:var(--b)"></div>
 <div class="sl"><div class="row"><label>歷史回測區間</label><b id="winv"></b></div><input type="range" id="winz" min="1" max="20" step="1" value="10"></div>
-<div class="note">報酬、波動、拉回為時間加權；金額以你輸入的總淨值為起點；定期投入在月底、按目標比例買進；未計交易成本與稅；VT 已依每次實際配息扣除 30% 股息預扣稅；IEF、0050 的稅負（預扣稅、二代健保）未計。綠色為較佳者。<br>期末資產＝回測最後一個月的資產。提領金額每 12 個月依提領年增率調高，每月底提領當年金額的 1/12、按當時比例賣出；有投入或提領時，拉回金額會含現金流影響。</div></div>
+<div class="note">報酬、波動、拉回為時間加權；金額以你輸入的總淨值為起點；定期投入在月底、按目標比例買進；未計交易成本與稅；VT 已依每次實際配息扣除 30% 股息預扣稅；GOVT、0050 的稅負（預扣稅、二代健保）未計。綠色為較佳者。<br>期末資產＝回測最後一個月的資產。提領金額每 12 個月依提領年增率調高，每月底提領當年金額的 1/12、按當時比例賣出；有投入或提領時，拉回金額會含現金流影響。</div></div>
 <div class="card"><h2>資產總值（萬台幣）</h2><div class="ch"><canvas id="c1"></canvas></div></div>
 <div class="card"><h2>距高點虧損金額（萬台幣，以資產總值計）</h2><div class="ch"><canvas id="c2"></canvas></div></div>
 
@@ -87,16 +87,17 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 </main>
 <script>
 const DATA=/*__DATA__*/null;
-let N=['GLD','IEF','VT','0050'],NM=['GLD 黃金','IEF 美公債','VT 全球股票','0050 台股'];
-let R=[],DT=[],charts={},D0='',RAW=[];
+let N=['GLD','GOVT','VT','0050','00646','VXUS'],NM=['GLD 黃金','GOVT 美公債','VT 全球股票','0050 台股','00646 美國S&P500','VXUS 美國以外股票'];
+const UD=k=>!/^\d/.test(N[k]);  // 美元計價＝代號不是數字開頭
+let R=[],DT=[],charts={},D0='',RAW=[],PX=[];
 const $=id=>document.getElementById(id);
 const pct=x=>isNaN(x)?'—':(x*100).toFixed(1)+'%',fp=pct,mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
 const std=a=>{const m=mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1||1))};
 const fm=x=>Math.abs(x)>=1e4?(x/1e4).toFixed(2)+' 億':Math.round(x).toLocaleString('en-US')+' 萬';
 function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
-function demoRows(){const P=[[.07,.15,.05],[.03,.06,-.1],[.09,.15,.9],[.12,.17,.75]],rr=rng(7),nr=()=>Math.sqrt(-2*Math.log(rr()+1e-12))*Math.cos(2*Math.PI*rr());
-let p=[40,90,80,50],fx=30,o=[];
+function demoRows(){const P=[[.07,.15,.05],[.03,.06,-.1],[.09,.15,.9],[.12,.17,.75],[.11,.16,.85],[.06,.16,.85]],rr=rng(7),nr=()=>Math.sqrt(-2*Math.log(rr()+1e-12))*Math.cos(2*Math.PI*rr());
+let p=[40,24,80,50,25,50],fx=30,o=[];
 for(let i=0;i<216;i++){const y=2008+Math.floor((5+i)/12),m=(5+i)%12+1,z=nr();
 p=p.map((v,k)=>{const[mu,sg,l]=P[k];return v*(1+mu/12+sg/Math.sqrt(12)*(l*z+Math.sqrt(1-l*l)*nr()))});
 fx*=1+.001-.0024*z+.0118*nr();o.push([y+'-'+String(m).padStart(2,'0'),...p.map(x=>+x.toFixed(2)),+fx.toFixed(3)])}
@@ -105,15 +106,17 @@ return o}
 let DY=null;
 function setRows(rows){rows.sort((a,b)=>a[0]<b[0]?-1:1);D0=rows[0][0];RAW=rows;buildR(0)}
 // 月報酬（台幣）。VT 依當月配息殖利率 × 預扣稅率扣除；DY 缺時以年殖利率 2% 估算
-function buildR(wht){const rows=RAW,v=N.indexOf('VT'),tw=rows.map(r=>[r[1]*r[5],r[2]*r[5],r[3]*r[5],r[4]]);R=[];DT=[];
+function buildR(wht){const rows=RAW,v=N.indexOf('VT'),tw=rows.map(r=>N.map((_,k)=>r[k+1]*(UD(k)?r[N.length+1]:1)));R=[];DT=[];
 for(let i=1;i<rows.length;i++){const x=tw[i].map((p,k)=>p/tw[i-1][k]-1);
-if(v>=0&&wht)x[v]-=wht*(DY?DY[i]||0:.02/12)*rows[i][5]/rows[i-1][5];R.push(x);DT.push(rows[i][0])}}
+if(v>=0&&wht)x[v]-=wht*(DY?DY[i]||0:.02/12)*rows[i][N.length+1]/rows[i-1][N.length+1];R.push(x);DT.push(rows[i][0])}}
 
-function wA(){const a=N.map((_,i)=>+$('wa'+i).value||0),s=a.reduce((x,y)=>x+y,0);
+function aAmt(){return N.map((_,i)=>(+$('sh'+i).value||0)*PX[i]/1e4)}
+function wA(){const a=aAmt(),s=a.reduce((x,y)=>x+y,0);
+a.forEach((v,i)=>{const r=RAW[RAW.length-1];$('am'+i).textContent=`≈ ${fm(v)}（每股 ${UD(i)?'US$ '+r[i+1].toFixed(2):'NT$ '+r[i+1].toFixed(2)}）`});
 $('sa').textContent='總淨值 '+fm(s)+'｜'+a.map((x,i)=>N[i]+' '+(s?(x/s*100).toFixed(0):0)+'%').join('、');
-return{w:s?a.map(x=>x/s):[.25,.25,.25,.25],tot:s}}
+return{w:s?a.map(x=>x/s):N.map(()=>1/N.length),tot:s}}
 function wB(){const w=N.map((_,i)=>+$('wb'+i).value||0),s=w.reduce((a,b)=>a+b,0);
-$('sb').textContent='合計 '+s.toFixed(0)+'%'+(Math.abs(s-100)>.01?'（自動正規化）':'');return s?w.map(x=>x/s):[.25,.25,.25,.25]}
+$('sb').textContent='合計 '+s.toFixed(0)+'%'+(Math.abs(s-100)>.01?'（自動正規化）':'');return s?w.map(x=>x/s):N.map(()=>1/N.length)}
 
 function met(rs){const n=rs.length;let e=1,pk=1,dd=0;const eq=[1];
 for(const r of rs){e*=1+r;pk=Math.max(pk,e);dd=Math.min(dd,e/pk-1);eq.push(e)}
@@ -133,13 +136,13 @@ scales:{x:{ticks:{maxTicksLimit:6,autoSkip:true}},y:{title:{display:!!t,text:t},
 plugins:{legend:{labels:{boxWidth:14,filter:i=>!i.text.startsWith('_')}},tooltip:{callbacks:{label:i=>i.dataset.label.replace(/^_/,'')+'：'+tt(i.parsed.y)}}}});
 
 function path(w,rs,mode,init,c,wd,g=0){const n=rs.length,h=w.map(x=>x*init),ret=[],val=[init],inv=[init];let tot=init,wsum=0,dep=0;
-for(let t=0;t<n;t++){let s0=0,s1=0;for(let k=0;k<4;k++)s0+=h[k];
+for(let t=0;t<n;t++){let s0=0,s1=0;for(let k=0;k<N.length;k++)s0+=h[k];
 if(s0<=1e-9){ret.push(0);val.push(0);inv.push(tot);continue}
-for(let k=0;k<4;k++){h[k]*=1+rs[t][k];s1+=h[k]}
+for(let k=0;k<N.length;k++){h[k]*=1+rs[t][k];s1+=h[k]}
 ret.push(s1/s0-1);
-if(mode&&(t+1)%mode==0)for(let k=0;k<4;k++)h[k]=s1*w[k];
-if(t<n-1){if(c){for(let k=0;k<4;k++)h[k]+=c*w[k];tot+=c;s1+=c}
-const m=wd/12*(1+g)**Math.floor(t/12);if(m){if(m>=s1){wsum+=s1;h.fill(0);s1=0;dep=t+1}else{const f=1-m/s1;for(let k=0;k<4;k++)h[k]*=f;s1-=m;wsum+=m}}}
+if(mode&&(t+1)%mode==0)for(let k=0;k<N.length;k++)h[k]=s1*w[k];
+if(t<n-1){if(c){for(let k=0;k<N.length;k++)h[k]+=c*w[k];tot+=c;s1+=c}
+const m=wd/12*(1+g)**Math.floor(t/12);if(m){if(m>=s1){wsum+=s1;h.fill(0);s1=0;dep=t+1}else{const f=1-m/s1;for(let k=0;k<N.length;k++)h[k]*=f;s1-=m;wsum+=m}}}
 val.push(s1);inv.push(tot)}
 return{ret,val,inv,wsum,dep}}
 
@@ -149,11 +152,11 @@ for(let p=0;p<P;p++){const h=Z.map(w=>w.map(x=>x*init)),ix=[1,1],pk=[1,1],dd=[0,
 for(let t=0;t<H;t++){const row=R[Math.floor(r()*n)],m=wd/12*(1+g)**Math.floor(t/12);
 for(let z=0;z<2;z++){if(dead[z])continue;
 const w=Z[z],hh=h[z];let s0=0,s1=0;
-for(let k=0;k<4;k++){s0+=hh[k];hh[k]*=1+row[k]-hm[k]+em[k];s1+=hh[k]}
+for(let k=0;k<N.length;k++){s0+=hh[k];hh[k]*=1+row[k]-hm[k]+em[k];s1+=hh[k]}
 ix[z]*=s1/s0;pk[z]=Math.max(pk[z],ix[z]);dd[z]=Math.min(dd[z],ix[z]/pk[z]-1);
-if(mode&&(t+1)%mode==0)for(let k=0;k<4;k++)hh[k]=s1*w[k];
-if(t<H-1){if(c){for(let k=0;k<4;k++)hh[k]+=c*w[k];s1+=c}
-if(m){if(m>=s1){ws[z]+=s1;hh.fill(0);s1=0;dead[z]=1}else{const f=1-m/s1;for(let k=0;k<4;k++)hh[k]*=f;s1-=m;ws[z]+=m}}}
+if(mode&&(t+1)%mode==0)for(let k=0;k<N.length;k++)hh[k]=s1*w[k];
+if(t<H-1){if(c){for(let k=0;k<N.length;k++)hh[k]+=c*w[k];s1+=c}
+if(m){if(m>=s1){ws[z]+=s1;hh.fill(0);s1=0;dead[z]=1}else{const f=1-m/s1;for(let k=0;k<N.length;k++)hh[k]*=f;s1-=m;ws[z]+=m}}}
 pv[z]=Math.max(pv[z],s1);da[z]=Math.min(da[z],s1-pv[z]);val[z][t+1][p]=s1}}
 for(let z=0;z<2;z++){fin[z][p]=val[z][H][p];md[z][p]=dd[z];ma[z][p]=da[z];ls[z][p]=fin[z][p]+ws[z]<inv-1e-9?1:0;dp[z][p]=dead[z]}}
 const q=(a,x)=>Float64Array.from(a).sort()[Math.floor(x*P)];
@@ -182,8 +185,8 @@ if(ctb>0||wd>0)hr.push(['資金加權年化報酬',irr(PA),irr(PB),fp,1]);
 table('t1',hr);
 {const s0=RAW[RAW.length-1-n],s1=RAW[RAW.length-1],cg=(a,b)=>(b/a)**(12/n)-1;
 let h='<tr><th>標的</th><th>期初價</th><th>期末價</th><th>原幣年化</th><th>台幣年化（稅前）</th><th>台幣最大拉回</th></tr>';
-N.forEach((nm,k)=>{const usd=k<3,a=s0[k+1],b=s1[k+1];h+=`<tr><td>${nm}${usd?'（美元）':'（台幣）'}</td><td>${a.toFixed(2)}</td><td>${b.toFixed(2)}</td><td>${pct(cg(a,b))}</td><td>${pct(usd?cg(a*s0[5],b*s1[5]):cg(a,b))}</td><td>${pct(met(rows.map(r=>r[k])).dd)}</td></tr>`});
-h+=`<tr><td>USD/TWD 匯率</td><td>${s0[5].toFixed(2)}</td><td>${s1[5].toFixed(2)}</td><td>${pct(cg(s0[5],s1[5]))}</td><td colspan="2" style="text-align:left">正值＝台幣貶值（美元資產加分）</td></tr>`;
+N.forEach((nm,k)=>{const usd=UD(k),a=s0[k+1],b=s1[k+1];h+=`<tr><td>${nm}${usd?'（美元）':'（台幣）'}</td><td>${a.toFixed(2)}</td><td>${b.toFixed(2)}</td><td>${pct(cg(a,b))}</td><td>${pct(usd?cg(a*s0[N.length+1],b*s1[N.length+1]):cg(a,b))}</td><td>${pct(met(rows.map(r=>r[k])).dd)}</td></tr>`});
+h+=`<tr><td>USD/TWD 匯率</td><td>${s0[N.length+1].toFixed(2)}</td><td>${s1[N.length+1].toFixed(2)}</td><td>${pct(cg(s0[N.length+1],s1[N.length+1]))}</td><td colspan="2" style="text-align:left">正值＝台幣貶值（美元資產加分）</td></tr>`;
 $('tv').innerHTML=h;$('tvh').textContent=`${s0[0]} → ${s1[0]}`}
 const lab=['起點',...dts],gd=[{label:'A 調整前',data:PA.val,borderColor:c.a,borderWidth:2},{label:'B 調整後',data:PB.val,borderColor:c.b,borderWidth:2}];
 if(ctb>0)gd.push({label:'累計投入',data:PA.inv,borderColor:'#8888',borderDash:[5,4],borderWidth:1.5});
@@ -210,8 +213,8 @@ const shade={id:'dep',beforeDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{x}}=
 afterDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{y}}=ch,py=y.getPixelForValue(0);ctx.save();ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--tx').trim()||'#888';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(ca.left,py);ctx.lineTo(ca.right,py);ctx.stroke();ctx.restore()}};
 mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1],c.b,'B')]},options:o3,plugins:[shade]})}
 
-function showB(){const a=N.map((_,i)=>+$('wa'+i).value||0),tot=a.reduce((x,y)=>x+y,0),w=wB();
-N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i];$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}）`});
+function showB(){wA();const a=aAmt(),tot=a.reduce((x,y)=>x+y,0),w=wB();
+N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i],sh=Math.round(d*1e4/PX[i]);$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}，約 ${sh>=0?'+':''}${sh.toLocaleString('en-US')} 股）`});
 $('sb').textContent+='｜總額 '+fm(tot);
 $('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winz').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
 const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，到 ${(Math.round(+$('age').value)||38)+Y} 歲時約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
@@ -224,8 +227,9 @@ function init(){
 if(DATA){NM=DATA.names;N=NM.map(x=>x.split(' ')[0]);DY=DATA.divVT||null;setRows(DATA.rows);$('src').textContent=`資料來源：${DATA.source}；更新日 ${DATA.updated}；各標的最新價日期：${Object.entries(DATA.asof||{}).map(([k,v])=>k+' '+v).join('、')}。美元資產以當月底 USD/TWD 換算成台幣。`}
 else{setRows(demoRows());$('warn').style.display='block'}
 $('winz').max=Math.floor(R.length/12)+1;$('winz').value=$('winz').max;
-const wi=(p,d,u)=>{$(p).innerHTML=NM.map((n,i)=>`<div class="row"><label>${n}${p=='wb'?`<div class="sum" id="bm${i}"></div>`:''}</label><span><input type="number" id="${p}${i}" value="${d[i]}" min="0" step="any" inputmode="decimal"> ${u}</span></div>`).join('')};
-wi('wa',[30,50,100,70],'萬');wi('wb',[15,10,50,25],'%');
+const wi=(p,d,u,ip,sub)=>{$(p).innerHTML=NM.map((n,i)=>`<div class="row"><label>${n}<div class="sum" id="${sub}${i}"></div></label><span><input type="number" id="${ip}${i}" value="${d[i]}" min="0" step="any" inputmode="decimal"> ${u}</span></div>`).join('')};
+PX=N.map((_,k)=>{const r=RAW[RAW.length-1];return r[k+1]*(UD(k)?r[N.length+1]:1)});
+wi('wa',[30,500,300,5000,2000,200],'股','sh','am');wi('wb',[15,10,40,20,10,5],'%','wb','bm');
 restore();
 document.querySelectorAll('input[type=number],input[type=range],select').forEach(e=>e.addEventListener('input',()=>{showB();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
