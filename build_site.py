@@ -6,8 +6,8 @@ import pandas as pd
 import yfinance as yf
 
 # 想換標的只改這裡。美元標的填美元價，0050 為台幣價，最後一項是匯率。
-TICKERS = {'GLD': 'GLD', 'GOVT': 'GOVT', 'VT': 'VT', '0050': '0050.TW', '00646': '00646.TW', 'VXUS': 'VXUS', 'USDTWD': 'TWD=X'}
-NAMES = ['GLD 黃金', 'GOVT 美公債', 'VT 全球股票', '0050 台股', '00646 美國S&P500', 'VXUS 美國以外股票']
+TICKERS = {'GLDM': 'GLDM', 'GOVT': 'GOVT', 'VT': 'VT', '0050': '0050.TW', '00646': '00646.TW', 'VXUS': 'VXUS', 'USDTWD': 'TWD=X'}
+NAMES = ['GLDM 黃金', 'GOVT 美公債', 'VT 全球股票', '0050 台股', '00646 美國S&P500', 'VXUS 美國以外股票']
 
 # ---------- 下載與本地快取 ----------
 # 每日收盤價存在 data/*.csv（GitHub Actions 會把它 commit 回 repo）。下次只抓最後一天前 20 天起的新資料，
