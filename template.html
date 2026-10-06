@@ -36,7 +36,7 @@ th{color:var(--mu);font-weight:500;font-size:13px}th.a{color:var(--a)}th.b{color
 .pg{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:8px;font-size:14px;color:var(--mu)}
 .pg button,.btn2{font:inherit;font-size:14px;padding:5px 14px;border:1px solid var(--bd);border-radius:8px;background:transparent;color:var(--tx);cursor:pointer}
 .pg button:disabled{opacity:.3;cursor:default}
-.dvf{display:grid;grid-template-columns:1.35fr 1fr 1fr auto;gap:6px;align-items:center}
+.dvf{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
 .dvf input,.dvf select{width:100%;min-width:0;font-size:14px;padding:7px 6px}
 .dvf .btn{padding:7px 12px;font-size:14px}
 .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
@@ -75,7 +75,8 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="tabs"><button id="tbD">股利</button><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
 <section id="tabD" style="display:none">
 <div class="card"><h2>新增股利</h2>
-<div class="dvf"><input type="date" id="dvd"><select id="dvt"></select><input type="number" id="dva" min="0" step="1" inputmode="numeric" placeholder="金額(元)"><button id="dvadd" class="btn">新增</button></div><div class="note" id="dvmsg" style="color:var(--b);min-height:1em"></div></div>
+<div class="dvf" style="grid-template-columns:1fr 2fr"><select id="dvt"></select><input type="number" id="dva" min="0" step="1" inputmode="numeric" placeholder="金額(元)"></div>
+<div class="dvf" style="margin-top:6px"><input type="date" id="dvd"><button id="dvadd" class="btn">新增</button></div><div class="note" id="dvmsg" style="color:var(--b);min-height:1em"></div></div>
 <div class="card"><h2>股利紀錄</h2><div class="tw"><table id="dvl"></table></div>
 <div class="pg" id="dvpg"></div>
 <div class="btns"><button id="dvex" class="btn2">匯出 CSV</button><button id="dvim" class="btn2">匯入 CSV</button><input type="file" id="dvf" accept=".csv,text/csv,text/plain" style="display:none"></div>
