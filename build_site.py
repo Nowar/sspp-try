@@ -6,8 +6,12 @@ import pandas as pd
 import yfinance as yf
 
 # 想換標的只改這裡。美元標的填美元價，0050 為台幣價，最後一項是匯率。
-TICKERS = {'GLDM': 'GLDM', 'GOVT': 'GOVT', 'VT': 'VT', '0050': '0050.TW', '00646': '00646.TW', 'VXUS': 'VXUS', 'USDTWD': 'TWD=X'}
-NAMES = ['GLDM 黃金', 'GOVT 美公債', 'VT 全球股票', '0050 台股', '00646 美國S&P500', 'VXUS 美國以外股票']
+TICKERS = {'GLDM': 'GLDM', 'GOVT': 'GOVT', 'VT': 'VT', '0050': '0050.TW', '009826': '009826.TW', '00646': '00646.TW', 'VXUS': 'VXUS', 'USDTWD': 'TWD=X'}
+# 上市太短的標的：上市前用替代標的（換成台幣）接上，並每年扣 extra 代表費用率與稅負差異
+# 009826 於 2026 年才上市，追蹤全球股票，上市前以 VT 代替；VT 內扣約 0.06%、009826 約 0.5~0.6%，
+# 加上台灣基金投資美股的股息預扣稅（約 0.6%/年），合計每年扣 1.1%
+PROXY = {'009826': ('VT', 0.011)}
+NAMES = ['GLDM 黃金', 'GOVT 美公債', 'VT 全球股票', '0050 台股', '009826 全球股票(台幣)', '00646 美國S&P500', 'VXUS 美國以外股票']
 
 # ---------- 下載與本地快取 ----------
 # 每日收盤價存在 data/*.csv（GitHub Actions 會把它 commit 回 repo）。下次只抓最後一天前 20 天起的新資料，
@@ -115,6 +119,19 @@ df['USDTWD'] = fx
 
 # 假日或缺值：用前幾天最後一筆有效價格補上（最多往前 10 天）
 df = df.ffill(limit=10)
+
+proxy_note = []
+for col, (src, extra) in PROXY.items():
+    real = df[col].dropna()
+    if real.empty:
+        sys.exit(f'{col} 沒有任何資料')
+    t0 = real.index[0]
+    tw = df[src] * (df['USDTWD'] if not TICKERS[src].endswith('.TW') else 1)
+    yrs = (t0 - df.index).days / 365.25
+    synth = real.iloc[0] * tw / tw.loc[t0] * (1 + extra) ** yrs
+    df.loc[df.index < t0, col] = synth[df.index < t0]
+    proxy_note.append(f'{col} 於 {t0:%Y-%m-%d} 上市，之前以 {src}（換台幣、每年扣 {extra:.1%}）代替')
+    print(proxy_note[-1])
 try:
     m = df.resample('ME').last()      # pandas >= 2.2
 except ValueError:
@@ -153,7 +170,7 @@ except Exception as e:
 rows = [[d.strftime('%Y-%m')] + [round(float(x), 4) for x in r] for d, r in zip(m.index, m.values)]
 asof = {k: df[k].last_valid_index().date().isoformat() for k in TICKERS}
 payload = {'names': NAMES, 'rows': rows, 'updated': dt.date.today().isoformat(), 'asof': asof,
-           'source': 'Yahoo Finance（yfinance，已還原股息與分割）', 'divVT': div_vt,
+           'source': 'Yahoo Finance（yfinance，已還原股息與分割）', 'divVT': div_vt, 'proxyNote': '；'.join(proxy_note),
            'ccy': ['TWD' if v.endswith('.TW') else 'USD' for k, v in TICKERS.items() if k != 'USDTWD']}
 print(f'{len(rows)} 個月：{rows[0][0]} ~ {rows[-1][0]}')
 print('首列', rows[0]); print('末列', rows[-1])

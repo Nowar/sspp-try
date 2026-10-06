@@ -87,7 +87,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 </main>
 <script>
 const DATA=/*__DATA__*/null;
-let N=['GLDM','GOVT','VT','0050','00646','VXUS'],NM=['GLDM 黃金','GOVT 美公債','VT 全球股票','0050 台股','00646 美國S&P500','VXUS 美國以外股票'];
+let N=['GLDM','GOVT','VT','0050','009826','00646','VXUS'],NM=['GLDM 黃金','GOVT 美公債','VT 全球股票','0050 台股','009826 全球股票(台幣)','00646 美國S&P500','VXUS 美國以外股票'];
 const UD=k=>!/^\d/.test(N[k]);  // 美元計價＝代號不是數字開頭
 let R=[],DT=[],charts={},D0='',RAW=[],PX=[];
 const $=id=>document.getElementById(id);
@@ -96,8 +96,8 @@ const std=a=>{const m=mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.
 const fm=x=>Math.abs(x)>=1e4?(x/1e4).toFixed(2)+' 億':Math.round(x).toLocaleString('en-US')+' 萬';
 function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
-function demoRows(){const P=[[.07,.15,.05],[.03,.06,-.1],[.09,.15,.9],[.12,.17,.75],[.11,.16,.85],[.06,.16,.85]],rr=rng(7),nr=()=>Math.sqrt(-2*Math.log(rr()+1e-12))*Math.cos(2*Math.PI*rr());
-let p=[20,24,80,50,25,50],fx=30,o=[];
+function demoRows(){const P=[[.07,.15,.05],[.03,.06,-.1],[.09,.15,.9],[.12,.17,.75],[.08,.15,.9],[.11,.16,.85],[.06,.16,.85]],rr=rng(7),nr=()=>Math.sqrt(-2*Math.log(rr()+1e-12))*Math.cos(2*Math.PI*rr());
+let p=[20,24,80,50,10,25,50],fx=30,o=[];
 for(let i=0;i<216;i++){const y=2008+Math.floor((5+i)/12),m=(5+i)%12+1,z=nr();
 p=p.map((v,k)=>{const[mu,sg,l]=P[k];return v*(1+mu/12+sg/Math.sqrt(12)*(l*z+Math.sqrt(1-l*l)*nr()))});
 fx*=1+.001-.0024*z+.0118*nr();o.push([y+'-'+String(m).padStart(2,'0'),...p.map(x=>+x.toFixed(2)),+fx.toFixed(3)])}
@@ -110,12 +110,12 @@ function buildR(wht){const rows=RAW,v=N.indexOf('VT'),tw=rows.map(r=>N.map((_,k)
 for(let i=1;i<rows.length;i++){const x=tw[i].map((p,k)=>p/tw[i-1][k]-1);
 if(v>=0&&wht)x[v]-=wht*(DY?DY[i]||0:.02/12)*rows[i][N.length+1]/rows[i-1][N.length+1];R.push(x);DT.push(rows[i][0])}}
 
-function aAmt(){return N.map((_,i)=>(+$('sh'+i).value||0)*PX[i]/1e4)}
+function aAmt(){return N.map((_,i)=>(+$('sh_'+N[i]).value||0)*PX[i]/1e4)}
 function wA(){const a=aAmt(),s=a.reduce((x,y)=>x+y,0);
 a.forEach((v,i)=>{const r=RAW[RAW.length-1];$('am'+i).textContent=`≈ ${fm(v)}（每股 ${UD(i)?'US$ '+r[i+1].toFixed(2):'NT$ '+r[i+1].toFixed(2)}）`});
 $('sa').textContent='總淨值 '+fm(s)+'｜'+a.map((x,i)=>N[i]+' '+(s?(x/s*100).toFixed(0):0)+'%').join('、');
 return{w:s?a.map(x=>x/s):N.map(()=>1/N.length),tot:s}}
-function wB(){const w=N.map((_,i)=>+$('wb'+i).value||0),s=w.reduce((a,b)=>a+b,0);
+function wB(){const w=N.map((_,i)=>+$('wb_'+N[i]).value||0),s=w.reduce((a,b)=>a+b,0);
 $('sb').textContent='合計 '+s.toFixed(0)+'%'+(Math.abs(s-100)>.01?'（自動正規化）':'');return s?w.map(x=>x/s):N.map(()=>1/N.length)}
 
 function met(rs){const n=rs.length;let e=1,pk=1,dd=0;const eq=[1];
@@ -221,15 +221,17 @@ const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').
 function tab(k){['F','H'].forEach(x=>{$('tab'+x).style.display=x==k?'':'none';$('tb'+x).classList.toggle('on',x==k)});try{localStorage.setItem('pc4tab',k)}catch(e){}
 Object.values(charts).forEach(c=>c.resize&&c.resize())}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>o[e.id]=e.value);localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
-function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const e=$(k);if(e)e.value=o[k]}}catch(e){}}
+const OLD=['GLDM','GOVT','VT','0050','00646','VXUS'];  // 舊版以位置編號存的欄位，轉成以代號存
+function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const m=k.match(/^(sh|wb)(\d)$/),id=m?m[1]+'_'+OLD[+m[2]]:k;if(m&&(id in o))continue;const e=$(id);if(e)e.value=o[k]}}catch(e){}}
 
 function init(){
-if(DATA){NM=DATA.names;N=NM.map(x=>x.split(' ')[0]);DY=DATA.divVT||null;setRows(DATA.rows);$('src').textContent=`資料來源：${DATA.source}；更新日 ${DATA.updated}；各標的最新價日期：${Object.entries(DATA.asof||{}).map(([k,v])=>k+' '+v).join('、')}。美元資產以當月底 USD/TWD 換算成台幣。`}
+if(DATA){NM=DATA.names;N=NM.map(x=>x.split(' ')[0]);DY=DATA.divVT||null;setRows(DATA.rows);$('src').textContent=`資料來源：${DATA.source}；${DATA.proxyNote?DATA.proxyNote+'；':''}更新日 ${DATA.updated}；各標的最新價日期：${Object.entries(DATA.asof||{}).map(([k,v])=>k+' '+v).join('、')}。美元資產以當月底 USD/TWD 換算成台幣。`}
 else{setRows(demoRows());$('warn').style.display='block'}
 $('winz').max=Math.floor(R.length/12)+1;$('winz').value=$('winz').max;
-const wi=(p,d,u,ip,sub)=>{$(p).innerHTML=NM.map((n,i)=>`<div class="row"><label>${n}<div class="sum" id="${sub}${i}"></div></label><span><input type="number" id="${ip}${i}" value="${d[i]}" min="0" step="any" inputmode="decimal"> ${u}</span></div>`).join('')};
+const wi=(p,d,u,ip,sub)=>{$(p).innerHTML=NM.map((n,i)=>`<div class="row"><label>${n}<div class="sum" id="${sub}${i}"></div></label><span><input type="number" id="${ip}_${N[i]}" value="${d[i]}" min="0" step="any" inputmode="decimal"> ${u}</span></div>`).join('')};
 PX=N.map((_,k)=>{const r=RAW[RAW.length-1];return r[k+1]*(UD(k)?r[N.length+1]:1)});
-wi('wa',[30,500,300,5000,2000,200],'股','sh','am');wi('wb',[15,10,40,20,10,5],'%','wb','bm');
+const DF=(o,v)=>N.map(t=>t in o?o[t]:v);
+wi('wa',DF({GLDM:30,GOVT:500,VT:300,'0050':5000,'00646':2000,VXUS:200},0),'股','sh','am');wi('wb',DF({GLDM:15,GOVT:10,VT:40,'0050':20,'00646':10,VXUS:5},0),'%','wb','bm');
 restore();
 document.querySelectorAll('input[type=number],input[type=range],select').forEach(e=>e.addEventListener('input',()=>{showB();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
