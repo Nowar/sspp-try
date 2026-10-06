@@ -1,7 +1,7 @@
 """抓真實歷史價格 → 換算成月資料 → 把數字直接寫進 dist/index.html（單一檔案，手機直接開）。
 用法：pip install yfinance pandas ; python build_site.py
 """
-import json, os, time, datetime as dt, pathlib, sys
+import json, os, time, tempfile, datetime as dt, pathlib, sys
 import pandas as pd
 import yfinance as yf
 
@@ -19,19 +19,29 @@ META = json.loads(META_PATH.read_text(encoding='utf-8')) if META_PATH.exists() e
 TODAY = dt.date.today()
 OVERLAP_DAYS, FULL_EVERY_DAYS = 20, 30
 
+# yfinance 預設多執行緒下載，並共用一個 SQLite 時區快取；多檔同時寫入時會出現 'database is locked'。
+# 這裡改成單執行緒、快取放到獨立暫存資料夾，並且只針對失敗的代號重抓。
+if hasattr(yf, 'set_tz_cache_location'):
+    yf.set_tz_cache_location(tempfile.mkdtemp())
+
 def fetch(symbols, start, adjusted):
-    for attempt in range(4):              # Yahoo 偶爾會限流，重試幾次
+    got = {}
+    for attempt in range(4):
+        need = [s for s in symbols if s not in got]
         try:
-            d = yf.download(symbols, start=start, auto_adjust=adjusted, progress=False)['Close']
+            d = yf.download(need, start=start, auto_adjust=adjusted, progress=False, threads=False)['Close']
             if isinstance(d, pd.Series):
-                d = d.to_frame(symbols[0])
+                d = d.to_frame(need[0])
             if d.index.tz is not None:
                 d.index = d.index.tz_localize(None)
-            if len(d) and all(s in d.columns for s in symbols) and not d[symbols].isna().all().any():
-                return d[symbols]
+            for s in need:
+                if s in d.columns and d[s].notna().any():
+                    got[s] = d[s]
         except Exception as e:
             print('下載失敗：', e)
-        print(f'第 {attempt + 1} 次沒拿到完整資料，30 秒後重試')
+        if len(got) == len(symbols):
+            return pd.DataFrame(got)[symbols]
+        print(f'第 {attempt + 1} 次缺 {", ".join(s for s in symbols if s not in got)}，30 秒後只重抓這些')
         time.sleep(30)
     return None
 
