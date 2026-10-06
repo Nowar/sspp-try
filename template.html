@@ -29,6 +29,8 @@ th,td{padding:7px 8px;border-bottom:1px solid var(--bd);text-align:right;white-s
 th:first-child,td:first-child{text-align:left}
 th{color:var(--mu);font-weight:500;font-size:13px}th.a{color:var(--a)}th.b{color:var(--b)}
 .good{color:var(--good);font-weight:600}
+.sl{margin-top:14px}.sl b{font-size:16px}
+input[type=range]{width:100%;height:32px;margin:4px 0 0;padding:0;border:0;background:transparent;accent-color:var(--b)}
 .bad{color:var(--bad);font-weight:600}
 .ch{position:relative;height:270px}
 .warn{background:#fff4d6;color:#6a4a00;border-radius:8px;padding:8px 10px;font-size:13px;margin-bottom:12px}
@@ -52,22 +54,20 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="pb"><h2>B 調整後：目標比例（%）</h2><div id="wb"></div><div class="sum" id="sb"></div></div>
 </div>
 <div class="note">B 會用 A 的總淨值重新配置。輸入只存在你這支手機的瀏覽器裡。</div>
-<div class="row" style="margin-top:10px"><label>歷史回測區間</label><select id="win"><option value="0">全部</option><option value="180">近 15 年</option><option value="120">近 10 年</option><option value="60">近 5 年</option><option value="36">近 3 年</option><option value="24">近 2 年</option><option value="12">近 1 年</option></select></div>
-<div class="row"><label>歷史試算方向<div class="sum">反推：以今天淨值為終點，算當年需投入多少</div></label><select id="dir"><option value="fwd">正推（今天淨值當起點）</option><option value="rev" selected>反推（今天淨值當終點）</option></select></div>
-<div class="row"><label>未來模擬年數</label><input type="number" id="yrs" value="10" min="1" max="50"></div>
-<div class="row"><label>再平衡方式</label><select id="rb"><option value="1">每月再平衡</option><option value="3">每季再平衡</option><option value="6" selected>每半年再平衡</option><option value="12">每年再平衡</option><option value="0">不再平衡（買進持有）</option></select></div>
-<div class="row"><label>每月定期投入（萬）</label><input type="number" id="ctb" value="0" min="0" step="1"></div>
-<div class="row"><label>每年提領（萬，第一年）<div class="sum" id="wdp"></div></label><input type="number" id="wd" value="200" min="0" step="1"></div>
-<div class="row"><label>提領年增率（%）<div class="sum">每 12 個月調高一次，反映通膨</div></label><input type="number" id="wdg" value="3" step="0.5"></div>
-<div class="note">價格已是含息報酬（股息自動再投入），模型不會另外發股息給你。每年提領＝你每年從組合拿出來花的全部現金（含股息）。實際操作時，需要賣出的金額＝提領金額 − 當年除息領到的股息，不要把股息另外加在提領之外。</div>
-<div class="row"><label>VT 股息預扣稅（%）<div class="sum">依 VT 每次實際配息逐月扣除</div></label><input type="number" id="wht" value="30" min="0" max="100" step="1"></div>
+<div class="row"><label>歷史試算方向<div class="sum">反推：以今天淨值為終點，算當年需投入多少</div></label><select id="dir"><option value="fwd" selected>正推（今天淨值當起點）</option><option value="rev">反推（今天淨值當終點）</option></select></div>
+<div class="row"><label>再平衡方式</label><select id="rb"><option value="1">每月再平衡</option><option value="3">每季再平衡</option><option value="6">每半年再平衡</option><option value="12" selected>每年再平衡</option><option value="0">不再平衡（買進持有）</option></select></div>
 </div>
 
 <div class="card"><h2 id="ft">未來模擬</h2><div class="tw"><table id="t2"></table></div>
 <div class="note">用歷史月報酬 bootstrap（同月資產一起抽，保留相關性與匯率）。A、B 使用同一批抽樣，差異只來自配置。終值＝今天起算第 N 年底的資產；整體虧損＝期末資產加上已提領金額，仍低於總投入。</div></div>
-<div class="card"><h2>未來資產分布（P5 / 中位數 / P95，萬台幣）</h2><div class="ch" style="height:300px"><canvas id="c3"></canvas></div></div>
+<div class="card"><h2>未來資產分布（P5 / 中位數 / P95，萬台幣）</h2><div class="ch" style="height:300px"><canvas id="c3"></canvas></div><div class="note" id="dpn" style="color:var(--bad)"></div>
+<div class="sl"><div class="row"><label>未來模擬年數</label><b id="fyrv"></b></div><input type="range" id="fyr" min="5" max="50" step="1" value="40"></div>
+<div class="sl"><div class="row"><label>每年提領（萬，第一年）</label><b id="wdv"></b></div><input type="range" id="wd" min="50" max="300" step="1" value="200"><div class="sum" id="wdp"></div></div>
+<div class="sl"><div class="row"><label>提領年增率<div class="sum">每 12 個月調高一次，反映通膨</div></label><b id="wdgv"></b></div><input type="range" id="wdg" min="0" max="10" step="1" value="3"></div>
+<div class="note">價格已是含息報酬（股息自動再投入），模型不會另外發股息給你。每年提領＝你每年從組合拿出來花的全部現金（含股息）。實際操作時，需要賣出的金額＝提領金額 − 當年除息領到的股息，不要把股息另外加在提領之外。</div></div>
 <div class="card"><h2 id="ht">歷史回測</h2><div class="tw"><table id="t1"></table></div><div class="note" id="rvn" style="color:var(--b)"></div>
-<div class="note">報酬、波動、回撤為時間加權；金額以你輸入的總淨值為起點；定期投入在月底、按目標比例買進；未計交易成本與稅；VT 已依你設定的稅率扣除股息預扣稅；IEF、0050 的稅負（預扣稅、二代健保）未計。綠色為較佳者。<br>期末資產＝回測最後一個月的資產。提領金額每 12 個月依提領年增率調高，每月底提領當年金額的 1/12、按當時比例賣出；有投入或提領時，回撤金額會含現金流影響。</div></div>
+<div class="sl"><div class="row"><label>歷史回測區間</label><b id="winv"></b></div><input type="range" id="winy" min="1" max="20" step="1" value="10"></div>
+<div class="note">報酬、波動、回撤為時間加權；金額以你輸入的總淨值為起點；定期投入在月底、按目標比例買進；未計交易成本與稅；VT 已依每次實際配息扣除 30% 股息預扣稅；IEF、0050 的稅負（預扣稅、二代健保）未計。綠色為較佳者。<br>期末資產＝回測最後一個月的資產。提領金額每 12 個月依提領年增率調高，每月底提領當年金額的 1/12、按當時比例賣出；有投入或提領時，回撤金額會含現金流影響。</div></div>
 <div class="card"><h2>資產總值（萬台幣）</h2><div class="ch"><canvas id="c1"></canvas></div></div>
 <div class="card"><h2>距高點虧損金額（萬台幣，以資產總值計）</h2><div class="ch"><canvas id="c2"></canvas></div></div>
 
@@ -152,9 +152,9 @@ const st=z=>({p5:q(fin[z],.05),med:q(fin[z],.5),p95:q(fin[z],.95),loss:mean(ls[z
 const fan=z=>{const o=[[],[],[]];for(const a of val[z]){const s=Float64Array.from(a).sort();[.05,.5,.95].forEach((x,i)=>o[i].push(s[Math.floor(x*P)]))}return o};
 return{S:[st(0),st(1)],f:[fan(0),fan(1)],inv}}
 
-function update(){save();buildR(Math.max(0,Math.min(100,+$('wht').value||0))/100);const c=base(),{w:wa,tot}=wA(),wb=wB(),init=tot>0?tot:100;
-let rows=R,dts=DT;const w=+$('win').value;if(w&&w<R.length){rows=R.slice(-w);dts=DT.slice(-w)}
-const mode=+$('rb').value,ctb=Math.max(0,+$('ctb').value||0),wd=Math.max(0,+$('wd').value||0),g=(+$('wdg').value||0)/100,n=rows.length,all=[D0,...DT],st=all[all.length-1-n],d1=dts[n-1];
+function update(){save();buildR(.3);const c=base(),{w:wa,tot}=wA(),wb=wB(),init=tot>0?tot:100;
+let rows=R,dts=DT;const wy=+$('winy').value,w=wy>Math.floor(R.length/12)?0:wy*12;if(w&&w<R.length){rows=R.slice(-w);dts=DT.slice(-w)}
+const mode=+$('rb').value,ctb=0,wd=Math.max(0,+$('wd').value||0),g=(+$('wdg').value||0)/100,n=rows.length,all=[D0,...DT],st=all[all.length-1-n],d1=dts[n-1];
 $('span').textContent=`回測期間 ${st} ~ ${d1}，共 ${n} 個月`;
 $('ht').textContent=`歷史回測${$('dir').value=='rev'?'（反推）':''}：${st} → ${d1}（${(n/12).toFixed(1)} 年）`;
 const hm=N.map((_,k)=>mean(R.map(r=>r[k])));
@@ -180,7 +180,7 @@ const lab=['起點',...dts],gd=[{label:'A 調整前',data:PA.val,borderColor:c.a
 if(ctb>0)gd.push({label:'累計投入',data:PA.inv,borderColor:'#8888',borderDash:[5,4],borderWidth:1.5});
 mk('c1',{type:'line',data:{labels:lab,datasets:gd},options:opt(kt,fm,'萬台幣')});
 mk('c2',{type:'line',data:{labels:lab,datasets:[{label:'A 調整前',data:dA,borderColor:c.a,borderWidth:1.5,fill:true,backgroundColor:c.a+'22'},{label:'B 調整後',data:dB,borderColor:c.b,borderWidth:1.5,fill:true,backgroundColor:c.b+'22'}]},options:opt(kt,fm,'萬台幣')});
-const Y=Math.max(1,Math.min(50,Math.round(+$('yrs').value)||10)),H=Y*12,yl=`（${Y} 年後）`;
+const Y=Math.max(5,Math.min(50,Math.round(+$('fyr').value)||40)),H=Y*12,yl=`（${Y} 年後）`;
 $('ft').textContent=`未來模擬：今天起 ${Y} 年後`;
 const em=hm;
 const S=sim(wa,wb,H,em,hm,mode,init,ctb,wd,g),[sa,sb]=S.S;
@@ -194,22 +194,28 @@ const o3=opt(kt,fm,'萬台幣');o3.scales.x.ticks={autoSkip:false,maxRotation:0}
 const now=new Date(),ord=[0,2,1,3,5,4],p2=x=>String(x).padStart(2,'0');
 o3.plugins.tooltip.itemSort=(a,b)=>ord[a.datasetIndex]-ord[b.datasetIndex];
 o3.plugins.tooltip.callbacks.title=it=>{const i=it[0].dataIndex,y=now.getFullYear(),m=now.getMonth()+i,d=Math.min(now.getDate(),new Date(y,m+1,0).getDate()),t=new Date(y,m,d);return `${t.getFullYear()}/${p2(t.getMonth()+1)}/${p2(t.getDate())}（第 ${Math.floor(i/12)} 年 ${i%12} 個月）`};
-mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1],c.b,'B')]},options:o3})}
+const zf=(f,k)=>{const i=f[k].findIndex(v=>v<=1e-9);return i<0?null:i},a5=zf(S.f[0],0),b5=zf(S.f[1],0),a50=zf(S.f[0],1),b50=zf(S.f[1],1);
+const mn=(x,y)=>x==null?y:y==null?x:Math.min(x,y),r5=mn(a5,b5),r50=mn(a50,b50),yt=i=>i==null?'未發生':`第 ${(i/12).toFixed(1)} 年`;
+$('dpn').textContent=r5==null?'':`紅色區：至少 5% 的情境已把錢用完（A ${yt(a5)}、B ${yt(b5)}）`+(r50==null?'':`；深紅區：過半情境已用完（A ${yt(a50)}、B ${yt(b50)}）`);
+const shade={id:'dep',beforeDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{x}}=ch,box=(i,col)=>{if(i==null)return;const x0=x.getPixelForValue(i);ctx.save();ctx.fillStyle=col;ctx.fillRect(x0,ca.top,ca.right-x0,ca.bottom-ca.top);ctx.restore()};box(r5,'rgba(220,50,40,.12)');box(r50,'rgba(220,50,40,.20)')}};
+mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1],c.b,'B')]},options:o3,plugins:[shade]})}
 
 function showB(){const a=N.map((_,i)=>+$('wa'+i).value||0),tot=a.reduce((x,y)=>x+y,0),w=wB();
 N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i];$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}）`});
 $('sb').textContent+='｜總額 '+fm(tot);
-const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('yrs').value||10;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，${Y} 年後約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
+$('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winy').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
+const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||40;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，${Y} 年後約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>o[e.id]=e.value);localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const e=$(k);if(e)e.value=o[k]}}catch(e){}}
 
 function init(){
 if(DATA){NM=DATA.names;N=NM.map(x=>x.split(' ')[0]);DY=DATA.divVT||null;setRows(DATA.rows);$('src').textContent=`資料來源：${DATA.source}；更新日 ${DATA.updated}；各標的最新價日期：${Object.entries(DATA.asof||{}).map(([k,v])=>k+' '+v).join('、')}。美元資產以當月底 USD/TWD 換算成台幣。`}
 else{setRows(demoRows());$('warn').style.display='block'}
+$('winy').max=Math.floor(R.length/12)+1;
 const wi=(p,d,u)=>{$(p).innerHTML=NM.map((n,i)=>`<div class="row"><label>${n}${p=='wb'?`<div class="sum" id="bm${i}"></div>`:''}</label><span><input type="number" id="${p}${i}" value="${d[i]}" min="0" step="any" inputmode="decimal"> ${u}</span></div>`).join('')};
 wi('wa',[30,50,100,70],'萬');wi('wb',[15,10,50,25],'%');
 restore();
-document.querySelectorAll('input[type=number],select').forEach(e=>e.addEventListener('input',()=>{showB();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
+document.querySelectorAll('input[type=number],input[type=range],select').forEach(e=>e.addEventListener('input',()=>{showB();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
 update();showB()}
 init();
