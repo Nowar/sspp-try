@@ -11,6 +11,7 @@ on:
         default: false
   push:
     branches: [main]
+    paths-ignore: ['data/vault.json']
 permissions:
   contents: write
   pages: write
