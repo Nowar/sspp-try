@@ -39,6 +39,7 @@ th{color:var(--mu);font-weight:500;font-size:13px}th.a{color:var(--a)}th.b{color
 .dvf{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
 .dvf input,.dvf select{width:100%;min-width:0;font-size:14px;padding:7px 6px}
 .dvf .btn{padding:7px 12px;font-size:14px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .del.on{background:var(--bad);border-color:var(--bad);color:#fff}
 .del{font:inherit;font-size:13px;padding:3px 10px;border:1px solid var(--bd);border-radius:7px;background:transparent;color:var(--bad);cursor:pointer}
@@ -72,6 +73,12 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="row"><label>再平衡方式</label><select id="rb"><option value="1">每月再平衡</option><option value="3">每季再平衡</option><option value="6">每半年再平衡</option><option value="12" selected>每年再平衡</option><option value="0">不再平衡（買進持有）</option></select></div>
 </div>
 
+<div class="card"><h2>配置一覽</h2>
+<div class="sum">各標的比例（A 調整前／B 調整後）</div><div class="ch" style="height:190px"><canvas id="cv1"></canvas></div>
+<div class="sum" style="margin-top:12px">這次調整要買賣的金額（萬台幣，右買左賣）</div><div class="sum">依 5/25 法則：與目標比例差超過 5 個百分點，或超過目標比例的 25%（取較小者）才列出</div><div class="ch" id="cv2w" style="height:260px"><canvas id="cv2"></canvas></div><div class="note" id="cv2n"></div>
+<div class="g2" style="margin-top:12px"><div><div class="sum">資產類別</div><div class="ch" style="height:170px"><canvas id="cv3"></canvas></div></div>
+<div><div class="sum">台幣／美元</div><div class="ch" style="height:170px"><canvas id="cv4"></canvas></div></div></div>
+<div class="note">圓環：外圈是 B 調整後，內圈是 A 調整前。單一市場股票指 0050、2454（集中在台灣）。</div></div>
 <div class="tabs"><button id="tbD">股利</button><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
 <section id="tabD" style="display:none">
 <div class="card"><h2>雲端同步（加密存在 GitHub）</h2>
@@ -227,7 +234,7 @@ const em=hm;
 const S=sim(wa,wb,H,em,hm,mode,init,ctb,wd,g),[sa,sb]=S.S;
 const fr=[[`整體虧損機率（總投入 ${fm(S.inv)}）`,sa.loss,sb.loss,fp,0,1]];
 if(wd>0)fr.push(['資產耗盡機率',sa.dep,sb.dep,fp,0,1]);
-fr.push(['最大拉回 P5（最糟 5%）',sa.mdd5,sb.mdd5,fp,1],['最大拉回金額 P5（最糟 5%）',sa.mda5,sb.mda5,fm,1],['最大拉回中位數',sa.mdd,sb.mdd,fp,1],['最大拉回金額中位數',sa.mda,sb.mda,fm,1]);
+fr.push(['最大拉回 P5（最糟 5%）',sa.mdd5,sb.mdd5,fp,1],['最大拉回中位數',sa.mdd,sb.mdd,fp,1]);
 table('t2',fr);
 const ys=Y>20?5:Y>10?2:1,XL=[...Array(H+1).keys()].map(i=>i%12||(i/12)%ys?'':(A0+i/12)+'歲');
 const ds=(f,col,nm)=>[{label:'_'+nm+' P5',data:f[0],borderColor:'transparent',fill:false},{label:'_'+nm+' P95',data:f[2],borderColor:'transparent',backgroundColor:col+'30',fill:'-1'},{label:nm+' 中位數',data:f[1],borderColor:col,borderWidth:2}];
@@ -243,8 +250,8 @@ afterDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{y}}=ch,py=y.getPixelForValu
 mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1],c.b,'B')]},options:o3,plugins:[shade]})}
 
 function showB(){wA();if(DVOK)dvRender();const a=aAmt(),tot=a.reduce((x,y)=>x+y,0),w=wB();
-N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i],sh=Math.round(d*1e4/PX[i]);$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}，約 ${sh>=0?'+':''}${sh.toLocaleString('en-US')} 股）`});
-$('sb').textContent+='｜總額 '+fm(tot);
+N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i],sh=Math.round(d*1e4/PX[i]);$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}，約 ${sh>=0?'+':''}${sh.toLocaleString('en-US')} 股）`+(tot>0&&Math.abs(a[i]/tot-w[i])<=Math.min(.05,.25*w[i])+1e-12&&(a[i]>0||w[i]>0)?'｜未達 5/25 門檻':'')});
+$('sb').textContent+='｜總額 '+fm(tot);drawAlloc(a,tot,w);
 $('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winz').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
 const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，到 ${(Math.round(+$('age').value)||38)+Y} 歲時約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
 function tab(k){['D','F','H'].forEach(x=>{$('tab'+x).style.display=x==k?'':'none';$('tb'+x).classList.toggle('on',x==k)});try{localStorage.setItem('pc4tab',k)}catch(e){}
@@ -308,6 +315,25 @@ function vLogout(){VK=VTOK=null;try{localStorage.removeItem('pc4vk')}catch(e){}D
 async function vInit(){$('dvlogin').onclick=vLogin;$('dvcreate').onclick=vCreate;$('dvretok').onclick=vRetoken;$('dvlogout').onclick=vLogout;vUI();
 let raw=null;try{raw=localStorage.getItem('pc4vk')}catch(e){}if(!raw)return;
 try{const k=await crypto.subtle.importKey('raw',b64d(raw),'AES-GCM',true,['encrypt','decrypt']),g=await ghGet();if(g)await vOpen(k,g)}catch(e){vMsg('自動登入失敗，請重新輸入通關密語')}}
+// ---------- 配置一覽圖 ----------
+const CLS=t=>/^(GLD|GLDM|IAU)$/.test(t)?'黃金':/^(GOVT|IEF|TLT|BND|SHY|VGIT)$/.test(t)?'債券':'股票';
+const SHADE={'股票':['#1f4e8c','#2f6fb5','#4a8fd6','#6aaee8','#93c5ee','#163a66','#3d7cc9','#b3d8f5'],'債券':['#1e8449','#27ae60','#58d68d','#145a32'],'黃金':['#c99a06','#f1c40f','#f7dc6f','#9a7d0a']},CCOL={'股票':'#2f6fb5','債券':'#27ae60','黃金':'#f1c40f'};
+const TWS=new Set(['0050','2454']);  // 單一市場（台灣）集中風險較高，用紫色系
+const COL=i=>{if(TWS.has(N[i])){const P=['#6c3483','#a569bd','#d2b4de','#4a235a'],k=N.slice(0,i).filter(n=>TWS.has(n)).length;return P[k%P.length]}const c=CLS(N[i]),k=N.slice(0,i).filter(n=>CLS(n)==c&&!TWS.has(n)).length,L=SHADE[c];return L[k%L.length]};
+function drawAlloc(a,tot,wb){if(!(tot>0))return;const wa=a.map(x=>x/tot),d=wb.map((w,i)=>w*tot-a[i]),c=base(),P=x=>(x*100).toFixed(1)+'%';
+const small={responsive:true,maintainAspectRatio:false,animation:false};
+mk('cv1',{type:'bar',data:{labels:['A','B'],datasets:N.map((n,i)=>({label:n,data:[wa[i]*100,wb[i]*100],backgroundColor:COL(i),borderWidth:0,_i:i})).filter(x=>x.data[0]>1e-9||x.data[1]>1e-9)},
+options:{...small,indexAxis:'y',scales:{x:{stacked:true,max:100,ticks:{callback:v=>v+'%'}},y:{stacked:true,ticks:{autoSkip:false,font:{size:13,weight:'bold'}}}},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:i=>`${i.dataset.label} ${i.parsed.x.toFixed(1)}%（${fm((i.dataIndex?wb:wa)[i.dataset._i]*tot)}）`}}}}});
+const thr=i=>Math.min(.05,.25*wb[i]),need=i=>Math.abs(wa[i]-wb[i])>thr(i)+1e-12,ix=N.map((_,i)=>i).filter(need),skip=N.map((_,i)=>i).filter(i=>!need(i)&&(a[i]>1e-9||wb[i]>1e-9));
+$('cv2n').textContent=(ix.length?'':'全部標的都在門檻內，這次不需要再平衡。')+(skip.length?'未達門檻、不需調整：'+skip.map(i=>`${N[i]}（差 ${(Math.abs(wa[i]-wb[i])*100).toFixed(1)}，門檻 ${(thr(i)*100).toFixed(1)} 個百分點）`).join('、'):'');
+$('cv2w').style.height=(ix.length?ix.length*28+40:0)+'px';
+mk('cv2',{type:'bar',data:{labels:ix.map(i=>N[i]),datasets:[{data:ix.map(i=>d[i]),backgroundColor:ix.map(i=>COL(i)),borderWidth:0}]},
+options:{...small,indexAxis:'y',scales:{x:{ticks:{callback:v=>v}},y:{ticks:{font:{size:12}}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.parsed.x>=0?'買進':'賣出'} ${fm(Math.abs(i.parsed.x))}，約 ${Math.round(Math.abs(i.parsed.x)*1e4/PX[ix[i.dataIndex]]).toLocaleString('en-US')} 股`}}}}});
+const ring=(key,L0,C0,id)=>{const s0=w=>L0.map(L=>N.reduce((s,n,i)=>s+(key(i)==L?w[i]:0),0)),B0=s0(wb),A0=s0(wa),k=L0.map((_,j)=>j).filter(j=>B0[j]>1e-9||A0[j]>1e-9),labels=k.map(j=>L0[j]),cols=k.map(j=>C0[j]),sb=k.map(j=>B0[j]),sa=k.map(j=>A0[j]);
+mk(id,{type:'doughnut',data:{labels,datasets:[{label:'B',data:sb,backgroundColor:cols,borderWidth:1},{label:'A',data:sa,backgroundColor:cols.map(x=>x+'99'),borderWidth:1}]},
+options:{...small,cutout:'35%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:i=>`${i.dataset.label} ${i.label} ${P(i.parsed)}`}}}}})};
+ring(i=>TWS.has(N[i])?'單一市場股票':CLS(N[i]),['股票','單一市場股票','債券','黃金'],[CCOL['股票'],'#8e44ad',CCOL['債券'],CCOL['黃金']],'cv3');
+ring(i=>UD(i)?'美元':'台幣',['台幣','美元'],['#e8833a','#5d6d7e'],'cv4')}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 const OLD=['GLDM','GOVT','VT','0050','00646','VXUS'];  // 舊版以位置編號存的欄位，轉成以代號存
 function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const m=k.match(/^(sh|wb)(\d)$/),id=m?m[1]+'_'+OLD[+m[2]]:k;if(m&&(id in o))continue;const e=$(id);if(e)e.value=o[k]}}catch(e){}}
