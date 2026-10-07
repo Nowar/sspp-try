@@ -10,6 +10,8 @@ TICKERS = {'GLDM': 'GLDM', 'GOVT': 'GOVT', 'VT': 'VT', '2454': '2454.TW', '0050'
 # 上市太短的標的：上市前用替代標的（換成台幣）接上，並每年扣 extra 代表費用率與稅負差異
 # 009826 於 2026 年才上市，追蹤全球股票，上市前以 VT 代替；VT 內扣約 0.06%、009826 約 0.5~0.6%，
 # 加上台灣基金投資美股的股息預扣稅（約 0.6%/年），合計每年扣 1.1%
+# 單月漲跌超過 40% 不擋下的標的（個股波動本來就大）；分割斷層的自動修復仍然會執行
+CHECK_SKIP = {'2454'}
 PROXY = {'009826': ('VT', 0.011)}
 NAMES = ['GLDM 黃金', 'GOVT 美公債', 'VT 全球股票', '2454 聯發科', '0050 台股', '009826 全球股票(台幣)', '00646 美國S&P500', 'VXUS 美國以外股票']
 
@@ -141,10 +143,13 @@ m = m.dropna()                        # 五欄都有值的月份才採用（起�
 # 資料檢查：單月跌超過 40% 或漲超過 40% 幾乎一定是分割／資料錯誤
 chg = m.pct_change()
 bad = chg.abs() > 0.40
-if bad.any().any():
-    for col in m.columns[bad.any()]:
-        for d in chg.index[bad[col]]:
-            print(f'{col} {d:%Y-%m}：單月變動 {chg.at[d, col]:+.1%}（{m[col].shift().at[d]:.4f} → {m.at[d, col]:.4f}）')
+stop = False
+for col in m.columns[bad.any()]:
+    ok = col in CHECK_SKIP
+    stop = stop or not ok
+    for d in chg.index[bad[col]]:
+        print(f'{col} {d:%Y-%m}：單月變動 {chg.at[d, col]:+.1%}（{m[col].shift().at[d]:.4f} → {m.at[d, col]:.4f}）' + ('［白名單，僅提示］' if ok else ''))
+if stop:
     sys.exit('資料異常（疑似分割未調整或錯誤報價），本次不發布')
 
 if len(m) < 24:
