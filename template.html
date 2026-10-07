@@ -76,8 +76,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="card"><h2>配置一覽</h2>
 <div class="sum">各標的比例（A 調整前／B 調整後）</div><div class="ch" style="height:190px"><canvas id="cv1"></canvas></div>
 <div class="sum" style="margin-top:12px">這次調整要買賣的金額（萬台幣，右買左賣）</div><div class="sum">依 5/25 法則：與目標比例差超過 5 個百分點，或超過目標比例的 25%（取較小者）才列出</div><div class="ch" id="cv2w" style="height:260px"><canvas id="cv2"></canvas></div><div class="note" id="cv2n"></div>
-<div class="g2" style="margin-top:12px"><div><div class="sum">資產類別</div><div class="ch" style="height:170px"><canvas id="cv3"></canvas></div></div>
-<div><div class="sum">台幣／美元</div><div class="ch" style="height:170px"><canvas id="cv4"></canvas></div></div></div>
+<div style="margin-top:12px"><div class="sum">資產類別</div><div class="ch" style="height:220px"><canvas id="cv3"></canvas></div></div>
 <div class="note">圓環：外圈是 B 調整後，內圈是 A 調整前。單一市場股票指 0050、2454（集中在台灣）。</div></div>
 <div class="tabs"><button id="tbD">股利</button><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
 <section id="tabD" style="display:none">
@@ -332,8 +331,7 @@ options:{...small,indexAxis:'y',scales:{x:{ticks:{callback:v=>v}},y:{ticks:{font
 const ring=(key,L0,C0,id)=>{const s0=w=>L0.map(L=>N.reduce((s,n,i)=>s+(key(i)==L?w[i]:0),0)),B0=s0(wb),A0=s0(wa),k=L0.map((_,j)=>j).filter(j=>B0[j]>1e-9||A0[j]>1e-9),labels=k.map(j=>L0[j]),cols=k.map(j=>C0[j]),sb=k.map(j=>B0[j]),sa=k.map(j=>A0[j]);
 mk(id,{type:'doughnut',data:{labels,datasets:[{label:'B',data:sb,backgroundColor:cols,borderWidth:1},{label:'A',data:sa,backgroundColor:cols.map(x=>x+'99'),borderWidth:1}]},
 options:{...small,cutout:'35%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:i=>`${i.dataset.label} ${i.label} ${P(i.parsed)}`}}}}})};
-ring(i=>TWS.has(N[i])?'單一市場股票':CLS(N[i]),['股票','單一市場股票','債券','黃金'],[CCOL['股票'],'#8e44ad',CCOL['債券'],CCOL['黃金']],'cv3');
-ring(i=>UD(i)?'美元':'台幣',['台幣','美元'],['#e8833a','#5d6d7e'],'cv4')}
+ring(i=>TWS.has(N[i])?'單一市場股票':CLS(N[i]),['股票','單一市場股票','債券','黃金'],[CCOL['股票'],'#8e44ad',CCOL['債券'],CCOL['黃金']],'cv3');}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 const OLD=['GLDM','GOVT','VT','0050','00646','VXUS'];  // 舊版以位置編號存的欄位，轉成以代號存
 function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const m=k.match(/^(sh|wb)(\d)$/),id=m?m[1]+'_'+OLD[+m[2]]:k;if(m&&(id in o))continue;const e=$(id);if(e)e.value=o[k]}}catch(e){}}
