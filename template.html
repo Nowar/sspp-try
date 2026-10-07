@@ -41,6 +41,8 @@ th{color:var(--mu);font-weight:500;font-size:13px}th.a{color:var(--a)}th.b{color
 .dvf .btn{padding:7px 12px;font-size:14px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.up{color:var(--bad)}.dn{color:var(--good)}
+.gup .up{color:var(--good)}.gup .dn{color:var(--bad)}
 .del.on{background:var(--bad);border-color:var(--bad);color:#fff}
 .del{font:inherit;font-size:13px;padding:3px 10px;border:1px solid var(--bd);border-radius:7px;background:transparent;color:var(--bad);cursor:pointer}
 .sl{margin-top:14px}.sl b{font-size:16px}
@@ -78,7 +80,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="sum" style="margin-top:12px">這次調整要買賣的金額（萬台幣，右買左賣）</div><div class="sum">依 5/25 法則：與目標比例差超過 5 個百分點，或超過目標比例的 25%（取較小者）才列出</div><div class="ch" id="cv2w" style="height:260px"><canvas id="cv2"></canvas></div><div class="note" id="cv2n"></div>
 <div style="margin-top:12px"><div class="sum">資產類別</div><div class="ch" style="height:220px"><canvas id="cv3"></canvas></div></div>
 <div class="note">圓環：外圈是 B 調整後，內圈是 A 調整前。單一市場股票指 0050、2454（集中在台灣）。</div></div>
-<div class="tabs"><button id="tbD">股利</button><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
+<div class="tabs"><button id="tbD">股利</button><button id="tbQ">即時</button><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
 <section id="tabD" style="display:none">
 <div class="card"><h2>雲端同步（加密存在 GitHub）</h2>
 <div id="vout"><div class="dvf" style="grid-template-columns:2fr 1fr"><input type="password" id="dvpw" placeholder="通關密語" autocomplete="current-password"><button id="dvlogin" class="btn">登入</button></div>
@@ -98,6 +100,13 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="card"><h2>每年統計</h2><div class="tw"><table id="dvy"></table></div>
 <div class="ch" id="dvcw" style="height:260px;margin-top:12px;display:none"><canvas id="dvc"></canvas></div>
 <div class="note">金額單位：台幣元。依標的分欄加總，最右邊為當年股利總額。</div></div>
+</section>
+<section id="tabQ" style="display:none">
+<div class="card"><div class="row"><h2 style="margin:0">即時報價</h2><span><select id="qcol" style="font-size:13px;padding:5px 6px"><option value="r">漲紅跌綠</option><option value="g">漲綠跌紅</option></select> <button id="qbtn" class="btn2">更新</button></span></div>
+<div class="sum" id="qsum" style="margin:6px 0 4px;font-size:15px"></div>
+<div class="tw"><table id="qt"></table></div>
+<div class="note" id="qmsg"></div>
+<div class="note">報價來自 Yahoo：美股接近即時，台股可能延遲數分鐘到 20 分鐘。市值依 A 區持有股數與即時匯率換算成台幣；今日損益以前一交易日收盤與匯率為基準。開著這個分頁時每 60 秒自動更新。</div></div>
 </section>
 <section id="tabF">
 <div class="card"><h2 id="ft">未來模擬</h2><div class="tw"><table id="t2"></table></div>
@@ -254,7 +263,8 @@ N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i],sh=Math.round(d*1e4/PX[i]);$('bm'+i)
 $('sb').textContent+='｜總額 '+fm(tot);drawAlloc(a,tot,w);
 $('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winz').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
 const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，到 ${(Math.round(+$('age').value)||38)+Y} 歲時約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
-function tab(k){['D','F','H'].forEach(x=>{$('tab'+x).style.display=x==k?'':'none';$('tb'+x).classList.toggle('on',x==k)});try{localStorage.setItem('pc4tab',k)}catch(e){}
+function tab(k){if(k=='Q'){qLoad();clearInterval(QT);QT=setInterval(qLoad,60000)}else clearInterval(QT);
+['D','Q','F','H'].forEach(x=>{$('tab'+x).style.display=x==k?'':'none';$('tb'+x).classList.toggle('on',x==k)});try{localStorage.setItem('pc4tab',k)}catch(e){}
 Object.values(charts).forEach(c=>c.resize&&c.resize())}
 // ---------- 股利紀錄 ----------
 let DV=[],DVOK=false,DVP=0;const DVPS=6;
@@ -337,6 +347,24 @@ const ring=(key,L0,C0,id)=>{const s0=w=>L0.map(L=>N.reduce((s,n,i)=>s+(key(i)==L
 mk(id,{type:'doughnut',data:{labels,datasets:[{label:'B',data:sb,backgroundColor:cols,borderWidth:1},{label:'A',data:sa,backgroundColor:cols.map(x=>x+'99'),borderWidth:1}]},
 options:{...small,cutout:'35%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:i=>`${i.dataset.label} ${i.label} ${P(i.parsed)}`}}}}})};
 ring(i=>TWS.has(N[i])?'單一市場股票':CLS(N[i]),['股票','單一市場股票','債券','黃金'],[CCOL['股票'],'#8e44ad',CCOL['債券'],CCOL['黃金']],'cv3');}
+// ---------- 即時報價（透過 Cloudflare Worker 代理 Yahoo）----------
+const QURL='https://quote.whgu.workers.dev/';let QT=null;
+const ysym=t=>/^\d/.test(t)?t+'.TW':t;
+const qTime=q=>{const d=new Date(q.time*1000),n=new Date(),p=x=>String(x).padStart(2,'0'),hm=`${p(d.getHours())}:${p(d.getMinutes())}`;return d.toDateString()==n.toDateString()?hm:`${p(d.getMonth()+1)}/${p(d.getDate())} ${hm}`};
+async function qLoad(){$('qmsg').textContent='更新中…';
+try{const r=await fetch(QURL+'?s='+encodeURIComponent([...N.map(ysym),'TWD=X'].join(',')),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
+const j=await r.json(),Q=Object.fromEntries(j.q.map(x=>[x.s,x])),fx=Q['TWD=X'],okfx=fx&&!fx.error&&fx.price;
+let tv=0,tp=0,h='<tr><th>標的</th><th>價格</th><th>漲跌</th><th>市值／今日</th><th>時間</th></tr>';
+const chg=(c,pc)=>`${c>0?'+':''}${c.toFixed(2)}<br>${c>0?'+':''}${(pc*100).toFixed(2)}%`,cl=c=>c>0?'up':c<0?'dn':'';
+N.forEach((t,i)=>{const q=Q[ysym(t)],sh=+$('sh_'+t).value||0,usd=UD(i);
+if(!q||q.error||q.price==null||(usd&&!okfx)){h+=`<tr><td>${t}</td><td colspan="4" class="note">${q&&q.error||'無資料'}</td></tr>`;return}
+const c=q.price-q.prev,v=sh*q.price*(usd?fx.price:1)/1e4,vp=sh*q.prev*(usd?fx.prev:1)/1e4,dv=v-vp;tv+=v;tp+=vp;
+h+=`<tr><td>${t}</td><td>${q.price.toFixed(2)}<br><span class="sum">${usd?'US$':'NT$'}</span></td><td class="${cl(c)}">${chg(c,q.prev?c/q.prev:0)}</td><td>${sh?fm(v)+`<br><span class="${cl(dv)}">${dv>=0?'+':''}${dv.toFixed(1)} 萬</span>`:'<span class="sum">未持有</span>'}</td><td class="sum">${qTime(q)}</td></tr>`});
+if(okfx){const c=fx.price-fx.prev;h+=`<tr><td>USD/TWD</td><td>${fx.price.toFixed(3)}</td><td class="${cl(c)}">${chg(c,c/fx.prev)}</td><td class="sum">匯率</td><td class="sum">${qTime(fx)}</td></tr>`}
+$('qt').innerHTML=h;const d=tv-tp;
+$('qsum').innerHTML=tv?`總市值 <b>${fm(tv)}</b>，今日 <b class="${cl(d)}">${d>=0?'+':''}${d.toFixed(1)} 萬（${d>=0?'+':''}${(tp?d/tp*100:0).toFixed(2)}%）</b>`:'A 區沒有填持有股數，只顯示報價';
+const n=new Date(),p=x=>String(x).padStart(2,'0');$('qmsg').textContent=`更新於 ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`}
+catch(e){$('qmsg').textContent='抓不到即時報價：'+e.message}}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 const OLD=['GLDM','GOVT','VT','0050','00646','VXUS'];  // 舊版以位置編號存的欄位，轉成以代號存
 function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const m=k.match(/^(sh|wb)(\d)$/),id=m?m[1]+'_'+OLD[+m[2]]:k;if(m&&(id in o))continue;const e=$(id);if(e)e.value=o[k]}}catch(e){}}
@@ -350,9 +378,10 @@ PX=N.map((_,k)=>{const r=RAW[RAW.length-1];return r[k+1]*(UD(k)?r[N.length+1]:1)
 const DF=(o,v)=>N.map(t=>t in o?o[t]:v);
 wi('wa',DF({GLDM:30,GOVT:500,VT:300,'0050':5000,'00646':2000,VXUS:200},0),'股','sh','am');wi('wb',DF({GLDM:15,GOVT:10,VT:40,'0050':20,'00646':10,VXUS:5},0),'%','wb','bm');
 restore();
-document.querySelectorAll('input[type=number],input[type=range],select').forEach(e=>!e.id.startsWith('dv')&&e.addEventListener('input',()=>{showB();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
+document.querySelectorAll('input[type=number],input[type=range],select').forEach(e=>!e.id.startsWith('dv')&&e.id!='qcol'&&e.addEventListener('input',()=>{showB();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
-$('tbD').onclick=()=>tab('D');$('tbF').onclick=()=>tab('F');$('tbH').onclick=()=>tab('H');
+$('tbD').onclick=()=>tab('D');$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
+const qc=()=>{try{document.body.classList.toggle('gup',$('qcol').value=='g')}catch(e){}};$('qcol').onchange=()=>{qc();save()};qc();$('tbF').onclick=()=>tab('F');$('tbH').onclick=()=>tab('H');
 {const t=new Date();$('dvd').value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`}
 $('dvt').innerHTML='<option value="">其他</option>'+[...N].sort(TKS).map(t=>`<option${t=='GOVT'?' selected':''}>${t}</option>`).join('');
 $('dvadd').onclick=()=>{const d=$('dvd').value,a=+$('dva').value,t=$('dvt').value;if(!d||!(a>0)){dvMsg('請選擇日期並輸入金額');return}const rec={id:nid(),d,t,a:Math.round(a)};DVP=0;$('dva').value='';dvApply(l=>l.push(rec),'add dividend','已新增')};
