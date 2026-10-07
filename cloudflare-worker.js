@@ -2,6 +2,7 @@
 // 用法：https://<你的 worker 網址>/?s=VT,0050.TW,TWD=X
 // 回傳：{ at: 伺服器時間(毫秒), q: [{ s, price, prev, time, cur, tz } 或 { s, error }] }
 //   price = 最新成交價、prev = 前一交易日收盤、time = 報價時間（秒）、cur = 幣別、tz = 交易所時區
+//   rs/re = 正規交易時段起訖（秒），用來判斷現在是否盤中
 
 // 只允許你的網站從瀏覽器呼叫；網址不同請改這裡
 const ALLOW = ['https://nowar.github.io'];
@@ -42,6 +43,8 @@ export default {
           time: m.regularMarketTime,
           cur: m.currency,
           tz: m.exchangeTimezoneName,
+          rs: m.currentTradingPeriod?.regular?.start,   // 本次（或最近一次）正規交易時段開始（秒）
+          re: m.currentTradingPeriod?.regular?.end,     // 結束（秒）
         };
       } catch (e) {
         return { s, error: String(e) };

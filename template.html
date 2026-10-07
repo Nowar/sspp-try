@@ -6,9 +6,9 @@
 <title>投資組合調整比較（台幣）</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mu:#6b7480;--bd:#e2e5ea;--a:#4a6fa5;--b:#e8833a;--good:#1a8a4a;--bad:#c9372c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171b;--card:#1d2127;--tx:#e8eaed;--mu:#9aa3ad;--bd:#2e343c;--a:#7ea3d6;--b:#f0a064;--good:#4cc27c;--bad:#ef6b60}}
-:root[data-theme="dark"]{--bg:#14171b;--card:#1d2127;--tx:#e8eaed;--mu:#9aa3ad;--bd:#2e343c;--a:#7ea3d6;--b:#f0a064;--good:#4cc27c;--bad:#ef6b60}
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mu:#6b7480;--bd:#e2e5ea;--a:#4a6fa5;--b:#e8833a;--good:#1a8a4a;--bad:#c9372c;--live:#e9ecf0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171b;--card:#1d2127;--tx:#e8eaed;--mu:#9aa3ad;--bd:#2e343c;--a:#7ea3d6;--b:#f0a064;--good:#4cc27c;--bad:#ef6b60;--live:#2b3139}}
+:root[data-theme="dark"]{--bg:#14171b;--card:#1d2127;--tx:#e8eaed;--mu:#9aa3ad;--bd:#2e343c;--a:#7ea3d6;--b:#f0a064;--good:#4cc27c;--bad:#ef6b60;--live:#2b3139}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 -apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
@@ -42,6 +42,7 @@ th{color:var(--mu);font-weight:500;font-size:13px}th.a{color:var(--a)}th.b{color
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .up{color:var(--bad)}.dn{color:var(--good)}
+tr.live td{background:var(--live)}
 .gup .up{color:var(--good)}.gup .dn{color:var(--bad)}
 .del.on{background:var(--bad);border-color:var(--bad);color:#fff}
 .del{font:inherit;font-size:13px;padding:3px 10px;border:1px solid var(--bd);border-radius:7px;background:transparent;color:var(--bad);cursor:pointer}
@@ -106,7 +107,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="sum" id="qsum" style="margin:6px 0 4px;font-size:15px"></div>
 <div class="tw"><table id="qt"></table></div>
 <div class="note" id="qmsg"></div>
-<div class="note">報價來自 Yahoo：美股接近即時，台股可能延遲數分鐘到 20 分鐘。市值依 A 區持有股數與即時匯率換算成台幣；今日損益以前一交易日收盤與匯率為基準。開著這個分頁時每 60 秒自動更新。</div></div>
+<div class="note">報價來自 Yahoo：美股接近即時，台股可能延遲數分鐘到 20 分鐘。市值依 A 區持有股數與即時匯率換算成台幣；今日損益以前一交易日收盤與匯率為基準。開著這個分頁時每 5 分鐘自動更新，要更快請按「更新」。灰底＝目前正在盤中。</div></div>
 </section>
 <section id="tabF">
 <div class="card"><h2 id="ft">未來模擬</h2><div class="tw"><table id="t2"></table></div>
@@ -263,7 +264,7 @@ N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i],sh=Math.round(d*1e4/PX[i]);$('bm'+i)
 $('sb').textContent+='｜總額 '+fm(tot);drawAlloc(a,tot,w);
 $('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winz').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
 const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，到 ${(Math.round(+$('age').value)||38)+Y} 歲時約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
-function tab(k){if(k=='Q'){qLoad();clearInterval(QT);QT=setInterval(qLoad,60000)}else clearInterval(QT);
+function tab(k){if(k=='Q'){qLoad();clearInterval(QT);QT=setInterval(qLoad,300000)}else clearInterval(QT);
 ['D','Q','F','H'].forEach(x=>{$('tab'+x).style.display=x==k?'':'none';$('tb'+x).classList.toggle('on',x==k)});try{localStorage.setItem('pc4tab',k)}catch(e){}
 Object.values(charts).forEach(c=>c.resize&&c.resize())}
 // ---------- 股利紀錄 ----------
@@ -350,6 +351,12 @@ ring(i=>TWS.has(N[i])?'單一市場股票':CLS(N[i]),['股票','單一市場股�
 // ---------- 即時報價（透過 Cloudflare Worker 代理 Yahoo）----------
 const QURL='https://quote.whgu.workers.dev/';let QT=null;
 const ysym=t=>/^\d/.test(t)?t+'.TW':t;
+// 是否盤中：優先用 Worker 回傳的正規交易時段；舊版 Worker 沒有時，用交易所時區的平日固定時段估計（不含假日）
+function qOpen(q){const now=Date.now()/1000;if(q.rs&&q.re)return now>=q.rs&&now<q.re;
+if(/=X$/.test(q.s)){const d=new Date().getUTCDay();return d>=1&&d<=5}
+const P=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:q.tz||'UTC',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date()).map(x=>[x.type,x.value])),
+m=(+P.hour%24)*60+ +P.minute;if(P.weekday=='Sat'||P.weekday=='Sun')return false;
+return q.tz=='Asia/Taipei'?m>=540&&m<810:q.tz=='America/New_York'?m>=570&&m<960:false}
 const qTime=q=>{const d=new Date(q.time*1000),n=new Date(),p=x=>String(x).padStart(2,'0'),hm=`${p(d.getHours())}:${p(d.getMinutes())}`;return d.toDateString()==n.toDateString()?hm:`${p(d.getMonth()+1)}/${p(d.getDate())} ${hm}`};
 async function qLoad(){$('qmsg').textContent='更新中…';
 try{const r=await fetch(QURL+'?s='+encodeURIComponent([...N.map(ysym),'TWD=X'].join(',')),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
@@ -359,8 +366,8 @@ const chg=(c,pc)=>`${c>0?'+':''}${c.toFixed(2)}<br>${c>0?'+':''}${(pc*100).toFix
 N.forEach((t,i)=>{const q=Q[ysym(t)],sh=+$('sh_'+t).value||0,usd=UD(i);
 if(!q||q.error||q.price==null||(usd&&!okfx)){h+=`<tr><td>${t}</td><td colspan="4" class="note">${q&&q.error||'無資料'}</td></tr>`;return}
 const c=q.price-q.prev,v=sh*q.price*(usd?fx.price:1)/1e4,vp=sh*q.prev*(usd?fx.prev:1)/1e4,dv=v-vp;tv+=v;tp+=vp;
-h+=`<tr><td>${t}</td><td>${q.price.toFixed(2)}<br><span class="sum">${usd?'US$':'NT$'}</span></td><td class="${cl(c)}">${chg(c,q.prev?c/q.prev:0)}</td><td>${sh?fm(v)+`<br><span class="${cl(dv)}">${dv>=0?'+':''}${dv.toFixed(1)} 萬</span>`:'<span class="sum">未持有</span>'}</td><td class="sum">${qTime(q)}</td></tr>`});
-if(okfx){const c=fx.price-fx.prev;h+=`<tr><td>USD/TWD</td><td>${fx.price.toFixed(3)}</td><td class="${cl(c)}">${chg(c,c/fx.prev)}</td><td class="sum">匯率</td><td class="sum">${qTime(fx)}</td></tr>`}
+h+=`<tr class="${qOpen(q)?'live':''}"><td>${t}</td><td>${q.price.toFixed(2)}<br><span class="sum">${usd?'US$':'NT$'}</span></td><td class="${cl(c)}">${chg(c,q.prev?c/q.prev:0)}</td><td>${sh?fm(v)+`<br><span class="${cl(dv)}">${dv>=0?'+':''}${dv.toFixed(1)} 萬</span>`:'<span class="sum">未持有</span>'}</td><td class="sum">${qTime(q)}</td></tr>`});
+if(okfx){const c=fx.price-fx.prev;h+=`<tr class="${qOpen(fx)?'live':''}"><td>USD/TWD</td><td>${fx.price.toFixed(3)}</td><td class="${cl(c)}">${chg(c,c/fx.prev)}</td><td class="sum">匯率</td><td class="sum">${qTime(fx)}</td></tr>`}
 $('qt').innerHTML=h;const d=tv-tp;
 $('qsum').innerHTML=tv?`總市值 <b>${fm(tv)}</b>，今日 <b class="${cl(d)}">${d>=0?'+':''}${d.toFixed(1)} 萬（${d>=0?'+':''}${(tp?d/tp*100:0).toFixed(2)}%）</b>`:'A 區沒有填持有股數，只顯示報價';
 const n=new Date(),p=x=>String(x).padStart(2,'0');$('qmsg').textContent=`更新於 ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`}
