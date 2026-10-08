@@ -101,7 +101,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="card"><h2>每年統計</h2><div class="tw"><table id="dvy"></table></div>
 <div class="note">金額單位：台幣元。依標的分欄加總，最右邊為當年股利總額。</div></div>
 <div class="card" id="dvmc" style="display:none"><h2>平均每月統計</h2>
-<div class="ch" id="dvcw" style="height:260px"><canvas id="dvc"></canvas></div>
+<div class="tw" id="dvcs"><div class="ch" id="dvcw" style="height:260px"><canvas id="dvc"></canvas></div></div>
 <div class="note">各年度股利 ÷ 12，換算成平均每月領到多少（台幣元）。今年還沒過完，改除以今年已經過的月數（含本月），年份後面會標示除以幾。</div></div>
 </section>
 <section id="tabQ" style="display:none">
@@ -109,7 +109,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="sum" id="qsum" style="margin:6px 0 4px;font-size:15px"></div>
 <div class="tw"><table id="qt"></table></div>
 <div class="note" id="qmsg"></div>
-<div class="note">報價來自 Yahoo：美股接近即時，台股可能延遲數分鐘到 20 分鐘。市值依 A 區持有股數與即時匯率換算成台幣；各列損益以前一交易日收盤與匯率為基準；上方「盤中變動」只加總灰底（盤中）且有持有的標的。開著這個分頁時每 5 分鐘自動更新，要更快請按「更新」。灰底＝目前正在盤中。</div></div>
+<div class="note">報價來自 Yahoo：美股接近即時，台股可能延遲數分鐘到 20 分鐘。市值依 A 區持有股數與即時匯率換算成台幣；各列損益以前一交易日收盤與匯率為基準；上方「盤中變動」只加總灰底（盤中）且有持有的標的。只列出 A 區有填持有股數的標的（都沒填時列出全部）。開著這個分頁時每 5 分鐘自動更新，要更快請按「更新」。灰底＝目前正在盤中。</div></div>
 </section>
 <section id="tabF">
 <div class="card"><h2 id="ft">未來模擬</h2><div class="tw"><table id="t2"></table></div>
@@ -285,7 +285,7 @@ b.dataset.c='1';b.textContent='確認刪除';b.classList.add('on');setTimeout(()
 const by={},tk=new Set(),n0=x=>Math.round(x).toLocaleString('en-US');
 DV.forEach(r=>{const y=r.d.slice(0,4),t=r.t||'其他';tk.add(t);(by[y]=by[y]||{})[t]=(by[y][t]||0)+r.a});
 const cols=[...tk].sort(TKS);
-{const ys=Object.keys(by).sort(),CY=new Date().getFullYear(),CM=new Date().getMonth()+1,DIV=y=>+y==CY?CM:12;$('dvmc').style.display=DV.length?'':'none';
+{const ys=Object.keys(by).sort(),CY=new Date().getFullYear(),CM=new Date().getMonth()+1,DIV=y=>+y==CY?CM:12;$('dvmc').style.display=DV.length?'':'none';$('dvcw').style.minWidth=ys.length*Math.max(60,cols.length*16+24)+'px';setTimeout(()=>{const e=$('dvcs');e.scrollLeft=e.scrollWidth},0);
 if(DV.length)mk('dvc',{type:'bar',data:{labels:ys.map(y=>+y==CY?`${y}（÷${CM}）`:y),datasets:cols.map(c=>({label:c,data:ys.map(y=>(by[y][c]||0)/DIV(y)),backgroundColor:N.includes(c)?COL(N.indexOf(c)):'#999',borderWidth:0}))},
 options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=1e4?(v/1e4)+'萬':v}}},
 plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{footer:it=>`合計 每月約 ${n0(it.reduce((s,x)=>s+x.parsed.y,0))} 元`,label:i=>`${i.dataset.label} 每月約 ${n0(i.parsed.y)} 元`}}}}})}
@@ -361,11 +361,11 @@ m=(+P.hour%24)*60+ +P.minute;if(P.weekday=='Sat'||P.weekday=='Sun')return false;
 return q.tz=='Asia/Taipei'?m>=540&&m<810:q.tz=='America/New_York'?m>=570&&m<960:false}
 const qTime=q=>{const d=new Date(q.time*1000),n=new Date(),p=x=>String(x).padStart(2,'0'),hm=`${p(d.getHours())}:${p(d.getMinutes())}`;return d.toDateString()==n.toDateString()?hm:`${p(d.getMonth()+1)}/${p(d.getDate())} ${hm}`};
 async function qLoad(){$('qmsg').textContent='更新中…';
-try{const r=await fetch(QURL+'?s='+encodeURIComponent([...N.map(ysym),'TWD=X'].join(',')),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
+try{const held=N.map((_,i)=>i).filter(i=>(+$('sh_'+N[i]).value||0)>0),L=held.length?held:N.map((_,i)=>i);const r=await fetch(QURL+'?s='+encodeURIComponent([...L.map(i=>ysym(N[i])),'TWD=X'].join(',')),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
 const j=await r.json(),Q=Object.fromEntries(j.q.map(x=>[x.s,x])),fx=Q['TWD=X'],okfx=fx&&!fx.error&&fx.price;
 let tv=0,tp=0,lv=0,lp=0,ln=0,h='<tr><th>標的</th><th>價格</th><th>漲跌</th><th>市值／今日</th><th>時間</th></tr>';
 const chg=(c,pc)=>`${c>0?'+':''}${c.toFixed(2)}<br>${c>0?'+':''}${(pc*100).toFixed(2)}%`,cl=c=>c>0?'up':c<0?'dn':'';
-N.forEach((t,i)=>{const q=Q[ysym(t)],sh=+$('sh_'+t).value||0,usd=UD(i);
+L.forEach(i=>{const t=N[i],q=Q[ysym(t)],sh=+$('sh_'+t).value||0,usd=UD(i);
 if(!q||q.error||q.price==null||(usd&&!okfx)){h+=`<tr><td>${t}</td><td colspan="4" class="note">${q&&q.error||'無資料'}</td></tr>`;return}
 const c=q.price-q.prev,v=sh*q.price*(usd?fx.price:1)/1e4,vp=sh*q.prev*(usd?fx.prev:1)/1e4,dv=v-vp;tv+=v;tp+=vp;if(sh&&qOpen(q)){lv+=v;lp+=vp;ln++}
 h+=`<tr class="${qOpen(q)?'live':''}"><td>${t}</td><td>${q.price.toFixed(2)}<br><span class="sum">${usd?'US$':'NT$'}</span></td><td class="${cl(c)}">${chg(c,q.prev?c/q.prev:0)}</td><td>${sh?fm(v)+`<br><span class="${cl(dv)}">${dv>=0?'+':''}${dv.toFixed(1)} 萬</span>`:'<span class="sum">未持有</span>'}</td><td class="sum">${qTime(q)}</td></tr>`});
