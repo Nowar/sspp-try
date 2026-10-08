@@ -107,7 +107,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="sum" id="qsum" style="margin:6px 0 4px;font-size:15px"></div>
 <div class="tw"><table id="qt"></table></div>
 <div class="note" id="qmsg"></div>
-<div class="note">報價來自 Yahoo：美股接近即時，台股可能延遲數分鐘到 20 分鐘。市值依 A 區持有股數與即時匯率換算成台幣；今日損益以前一交易日收盤與匯率為基準。開著這個分頁時每 5 分鐘自動更新，要更快請按「更新」。灰底＝目前正在盤中。</div></div>
+<div class="note">報價來自 Yahoo：美股接近即時，台股可能延遲數分鐘到 20 分鐘。市值依 A 區持有股數與即時匯率換算成台幣；各列損益以前一交易日收盤與匯率為基準；上方「盤中變動」只加總灰底（盤中）且有持有的標的。開著這個分頁時每 5 分鐘自動更新，要更快請按「更新」。灰底＝目前正在盤中。</div></div>
 </section>
 <section id="tabF">
 <div class="card"><h2 id="ft">未來模擬</h2><div class="tw"><table id="t2"></table></div>
@@ -361,15 +361,15 @@ const qTime=q=>{const d=new Date(q.time*1000),n=new Date(),p=x=>String(x).padSta
 async function qLoad(){$('qmsg').textContent='更新中…';
 try{const r=await fetch(QURL+'?s='+encodeURIComponent([...N.map(ysym),'TWD=X'].join(',')),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
 const j=await r.json(),Q=Object.fromEntries(j.q.map(x=>[x.s,x])),fx=Q['TWD=X'],okfx=fx&&!fx.error&&fx.price;
-let tv=0,tp=0,h='<tr><th>標的</th><th>價格</th><th>漲跌</th><th>市值／今日</th><th>時間</th></tr>';
+let tv=0,tp=0,lv=0,lp=0,ln=0,h='<tr><th>標的</th><th>價格</th><th>漲跌</th><th>市值／今日</th><th>時間</th></tr>';
 const chg=(c,pc)=>`${c>0?'+':''}${c.toFixed(2)}<br>${c>0?'+':''}${(pc*100).toFixed(2)}%`,cl=c=>c>0?'up':c<0?'dn':'';
 N.forEach((t,i)=>{const q=Q[ysym(t)],sh=+$('sh_'+t).value||0,usd=UD(i);
 if(!q||q.error||q.price==null||(usd&&!okfx)){h+=`<tr><td>${t}</td><td colspan="4" class="note">${q&&q.error||'無資料'}</td></tr>`;return}
-const c=q.price-q.prev,v=sh*q.price*(usd?fx.price:1)/1e4,vp=sh*q.prev*(usd?fx.prev:1)/1e4,dv=v-vp;tv+=v;tp+=vp;
+const c=q.price-q.prev,v=sh*q.price*(usd?fx.price:1)/1e4,vp=sh*q.prev*(usd?fx.prev:1)/1e4,dv=v-vp;tv+=v;tp+=vp;if(sh&&qOpen(q)){lv+=v;lp+=vp;ln++}
 h+=`<tr class="${qOpen(q)?'live':''}"><td>${t}</td><td>${q.price.toFixed(2)}<br><span class="sum">${usd?'US$':'NT$'}</span></td><td class="${cl(c)}">${chg(c,q.prev?c/q.prev:0)}</td><td>${sh?fm(v)+`<br><span class="${cl(dv)}">${dv>=0?'+':''}${dv.toFixed(1)} 萬</span>`:'<span class="sum">未持有</span>'}</td><td class="sum">${qTime(q)}</td></tr>`});
 if(okfx){const c=fx.price-fx.prev;h+=`<tr class="${qOpen(fx)?'live':''}"><td>USD/TWD</td><td>${fx.price.toFixed(3)}</td><td class="${cl(c)}">${chg(c,c/fx.prev)}</td><td class="sum">匯率</td><td class="sum">${qTime(fx)}</td></tr>`}
-$('qt').innerHTML=h;const d=tv-tp;
-$('qsum').innerHTML=tv?`總市值 <b>${fm(tv)}</b>，今日 <b class="${cl(d)}">${d>=0?'+':''}${d.toFixed(1)} 萬（${d>=0?'+':''}${(tp?d/tp*100:0).toFixed(2)}%）</b>`:'A 區沒有填持有股數，只顯示報價';
+$('qt').innerHTML=h;const d=lv-lp;
+$('qsum').innerHTML=tv?`總市值 <b>${fm(tv)}</b>，`+(ln?`盤中變動 <b class="${cl(d)}">${d>=0?'+':''}${d.toFixed(1)} 萬（${d>=0?'+':''}${(lp?d/lp*100:0).toFixed(2)}%）</b><span class="sum">（${ln} 檔盤中）</span>`:'<span class="sum">目前持有的標的都不在盤中</span>'):'A 區沒有填持有股數，只顯示報價';
 const n=new Date(),p=x=>String(x).padStart(2,'0');$('qmsg').textContent=`更新於 ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`}
 catch(e){$('qmsg').textContent='抓不到即時報價：'+e.message}}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
