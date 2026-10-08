@@ -99,8 +99,10 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="btns"><button id="dvex" class="btn2">匯出 CSV</button><button id="dvim" class="btn2">匯入 CSV</button><input type="file" id="dvf" accept=".csv,text/csv,text/plain" style="display:none"></div>
 <div class="note">沒登入雲端時，紀錄只存在這支手機的瀏覽器裡；登入後以雲端為準。建議偶爾匯出 CSV 備份。匯入時會合併到現有紀錄，日期與金額都相同的視為重複並略過。CSV 格式：每行「日期,標的,金額」，例如 2026-07-15,0050,12000（舊的「日期,金額」格式也能匯入）。</div></div>
 <div class="card"><h2>每年統計</h2><div class="tw"><table id="dvy"></table></div>
-<div class="ch" id="dvcw" style="height:260px;margin-top:12px;display:none"><canvas id="dvc"></canvas></div>
 <div class="note">金額單位：台幣元。依標的分欄加總，最右邊為當年股利總額。</div></div>
+<div class="card" id="dvmc" style="display:none"><h2>平均每月統計</h2>
+<div class="ch" id="dvcw" style="height:260px"><canvas id="dvc"></canvas></div>
+<div class="note">各年度股利 ÷ 12，換算成平均每月領到多少（台幣元）。今年還沒過完，改除以今年已經過的月數（含本月），年份後面會標示除以幾。</div></div>
 </section>
 <section id="tabQ" style="display:none">
 <div class="card"><div class="row"><h2 style="margin:0">即時報價</h2><span><select id="qcol" style="font-size:13px;padding:5px 6px"><option value="r">漲紅跌綠</option><option value="g">漲綠跌紅</option></select> <button id="qbtn" class="btn2">更新</button></span></div>
@@ -283,10 +285,10 @@ b.dataset.c='1';b.textContent='確認刪除';b.classList.add('on');setTimeout(()
 const by={},tk=new Set(),n0=x=>Math.round(x).toLocaleString('en-US');
 DV.forEach(r=>{const y=r.d.slice(0,4),t=r.t||'其他';tk.add(t);(by[y]=by[y]||{})[t]=(by[y][t]||0)+r.a});
 const cols=[...tk].sort(TKS);
-{const ys=Object.keys(by).sort();$('dvcw').style.display=DV.length?'':'none';
-if(DV.length)mk('dvc',{type:'bar',data:{labels:ys,datasets:cols.map(c=>({label:c,data:ys.map(y=>by[y][c]||0),backgroundColor:N.includes(c)?COL(N.indexOf(c)):'#999',borderWidth:0}))},
+{const ys=Object.keys(by).sort(),CY=new Date().getFullYear(),CM=new Date().getMonth()+1,DIV=y=>+y==CY?CM:12;$('dvmc').style.display=DV.length?'':'none';
+if(DV.length)mk('dvc',{type:'bar',data:{labels:ys.map(y=>+y==CY?`${y}（÷${CM}）`:y),datasets:cols.map(c=>({label:c,data:ys.map(y=>(by[y][c]||0)/DIV(y)),backgroundColor:N.includes(c)?COL(N.indexOf(c)):'#999',borderWidth:0}))},
 options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},scales:{y:{beginAtZero:true,ticks:{callback:v=>v>=1e4?(v/1e4)+'萬':v}}},
-plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:i=>`${i.dataset.label} ${n0(i.parsed.y)} 元`}}}}})}
+plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{footer:it=>`合計 每月約 ${n0(it.reduce((s,x)=>s+x.parsed.y,0))} 元`,label:i=>`${i.dataset.label} 每月約 ${n0(i.parsed.y)} 元`}}}}})}
 $('dvy').innerHTML=DV.length?'<tr><th>年度</th>'+cols.map(c=>`<th>${c}</th>`).join('')+'<th>股利總額</th></tr>'+Object.keys(by).sort().reverse().map(y=>`<tr><td>${y}</td>`+cols.map(c=>`<td>${by[y][c]?n0(by[y][c]):'—'}</td>`).join('')+`<td><b>${n0(Object.values(by[y]).reduce((a,b)=>a+b,0))}</b></td></tr>`).join(''):'<tr><td class="note">新增紀錄後會自動統計</td></tr>'}
 const TKS=(a,b)=>a<b?-1:a>b?1:0;  // 代號排序：數字開頭在前，再依字母
 const kOf=r=>r.d+'|'+(r.t||'')+'|'+r.a,same=(x,r)=>r.id?x.id==r.id:kOf(x)==kOf(r),nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
