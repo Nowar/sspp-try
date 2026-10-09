@@ -65,6 +65,15 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="sub" id="span"></div>
 <div id="warn" class="warn" style="display:none">目前是合成示範資料（非真實行情），僅供預覽版面。真實資料版請用 build_site.py 產生。</div>
 
+<details class="card" id="vcard"><summary>雲端同步 <span class="sum" id="vsum"></span> <span class="sum" id="vmsg" style="color:var(--b)"></span></summary>
+<div class="note" style="margin:0 0 8px">股利紀錄與持股、目標比例等設定，加密後存在 GitHub，任何裝置輸入通關密語即可使用。</div>
+<div id="vout"><div class="dvf" style="grid-template-columns:2fr 1fr"><input type="password" id="dvpw" placeholder="通關密語" autocomplete="current-password"><button id="dvlogin" class="btn">登入</button></div>
+<label class="sum" style="display:block;margin-top:6px"><input type="checkbox" id="dvrem"> 在這支手機記住（下次自動登入）</label>
+<div id="vnew" style="display:none;margin-top:8px"><div class="note">雲端還沒有資料。第一次使用：貼上 GitHub token，會用上面的通關密語加密後存進 repo，之後其他裝置只要輸入通關密語。</div>
+<div class="dvf" style="grid-template-columns:2fr 1fr;margin-top:6px"><input type="password" id="dvtok" placeholder="GitHub token"><button id="dvcreate" class="btn">建立</button></div></div></div>
+<div id="vin" style="display:none"><div class="row"><span class="sum" id="vst">已登入：股利紀錄、持有股數、目標比例等設定都會自動加密同步</span><button id="dvlogout" class="btn2">登出</button></div>
+<details><summary class="sum">更換 GitHub token（token 過期時用）</summary><div class="dvf" style="grid-template-columns:2fr 1fr;margin-top:6px"><input type="password" id="dvtok2" placeholder="新的 token"><button id="dvretok" class="btn2">更換</button></div></details></div>
+</details>
 <div class="card">
 <div class="grid">
 <div class="pa"><h2>A 調整前：目前持有（股數）</h2><div id="wa"></div><div class="sum" id="sa"></div></div>
@@ -83,14 +92,6 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="note">圓環：外圈是 B 調整後，內圈是 A 調整前。單一市場股票指 0050、2454（集中在台灣）。</div></div>
 <div class="tabs"><button id="tbD">股利</button><button id="tbQ">即時</button><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
 <section id="tabD" style="display:none">
-<div class="card"><h2>雲端同步（加密存在 GitHub）</h2>
-<div id="vout"><div class="dvf" style="grid-template-columns:2fr 1fr"><input type="password" id="dvpw" placeholder="通關密語" autocomplete="current-password"><button id="dvlogin" class="btn">登入</button></div>
-<label class="sum" style="display:block;margin-top:6px"><input type="checkbox" id="dvrem"> 在這支手機記住（下次自動登入）</label>
-<div id="vnew" style="display:none;margin-top:8px"><div class="note">雲端還沒有資料。第一次使用：貼上 GitHub token，會用上面的通關密語加密後存進 repo，之後其他裝置只要輸入通關密語。</div>
-<div class="dvf" style="grid-template-columns:2fr 1fr;margin-top:6px"><input type="password" id="dvtok" placeholder="GitHub token"><button id="dvcreate" class="btn">建立</button></div></div></div>
-<div id="vin" style="display:none"><div class="row"><span class="sum" id="vst">已登入：新增、刪除、匯入會自動加密上傳</span><button id="dvlogout" class="btn2">登出</button></div>
-<details><summary class="sum">更換 GitHub token（token 過期時用）</summary><div class="dvf" style="grid-template-columns:2fr 1fr;margin-top:6px"><input type="password" id="dvtok2" placeholder="新的 token"><button id="dvretok" class="btn2">更換</button></div></details></div>
-<div class="note" id="vmsg" style="color:var(--b);min-height:1em"></div></div>
 <div class="card"><h2>新增股利</h2>
 <div class="dvf" style="grid-template-columns:1fr 2fr"><select id="dvt"></select><input type="number" id="dva" min="0" step="1" inputmode="numeric" placeholder="金額(元)"></div>
 <div class="dvf" style="margin-top:6px"><input type="date" id="dvd"><button id="dvadd" class="btn">新增</button></div><div class="note" id="dvmsg" style="color:var(--b);min-height:1em"></div></div>
@@ -314,17 +315,28 @@ if(r.status==409||r.status==422)return null;if(!r.ok)throw new Error('寫入 Git
 // 每次寫入都先抓最新版、套用這次的變更再寫回；被別的裝置搶先就重試
 async function vMutate(fn,cm){for(let i=0;i<3;i++){const g=await ghGet(VTOK);if(!g)throw new Error('找不到雲端資料');const l=await vDec(VK,g.v.div);fn(l);
 if(await ghPut(VTOK,{...g.v,div:await vEnc(VK,l)},g.sha,cm)){DV=l;dvSave();dvRender();return}}throw new Error('多次寫入衝突，請再試一次')}
-function vUI(){$('vout').style.display=VK?'none':'';$('vin').style.display=VK?'':'none'}
+// 設定（持有股數、目標比例、年紀、提領…）也加密同步；以最後修改時間為準（後改的裝置勝出）
+const lsu=()=>{try{return +(localStorage.getItem('pc4su')||0)}catch(e){return 0}};
+function curSet(){try{return JSON.parse(localStorage.getItem('pc4')||'{}')}catch(e){return{}}}
+function markSet(){try{localStorage.setItem('pc4su',Date.now())}catch(e){}if(VK){clearTimeout(window.vst);window.vst=setTimeout(vPushSet,3000)}}
+async function vSyncSet(g){let rs=null;if(g.v.set){try{rs=await vDec(VK,g.v.set)}catch(e){}}
+if(rs&&rs.u>lsu()){try{localStorage.setItem('pc4',JSON.stringify(rs.o));localStorage.setItem('pc4su',rs.u)}catch(e){}restore();showB();update();return 'pulled'}
+if(rs&&rs.u==lsu())return 'same';save();const u=lsu()||Date.now();try{localStorage.setItem('pc4su',u)}catch(e){}
+return await ghPut(VTOK,{...g.v,set:await vEnc(VK,{o:curSet(),u})},g.sha,'update settings')?'pushed':'conflict'}
+async function vPushSet(){try{for(let i=0;i<3;i++){const r=await vSyncSet(await ghGet(VTOK));if(r!='conflict'){if(r=='pushed')vMsg('設定已加密同步');return}}vMsg('設定同步衝突，稍後會再試')}catch(e){vMsg('設定同步失敗：'+e.message)}}
+function vUI(){$('vout').style.display=VK?'none':'';$('vin').style.display=VK?'':'none';$('vsum').textContent=VK?'（已登入）':'（未登入）'}
 async function vOpen(k,g){const tok=await vDec(k,g.v.tok),div=await vDec(k,g.v.div);VK=k;VTOK=tok;
 const h=new Set(div.map(kOf)),extra=DV.filter(r=>!h.has(kOf(r)));DV=div;dvSave();vUI();dvRender();
-if(extra.length){await vMutate(l=>{const s=new Set(l.map(kOf));extra.forEach(r=>{if(!s.has(kOf(r)))l.push({id:nid(),...r})})},'merge local dividends');vMsg(`已登入，並把這支手機上 ${extra.length} 筆雲端沒有的紀錄合併上去`)}else vMsg('已登入')}
+if(extra.length){await vMutate(l=>{const s=new Set(l.map(kOf));extra.forEach(r=>{if(!s.has(kOf(r)))l.push({id:nid(),...r})})},'merge local dividends')}
+let st='same';for(let i=0;i<3;i++){st=await vSyncSet(await ghGet(VTOK));if(st!='conflict')break}
+vMsg('已登入'+(extra.length?`，合併了這支手機上 ${extra.length} 筆股利`:'')+(st=='pulled'?'，已套用雲端較新的持股與設定':st=='pushed'?'，已把這支手機的持股與設定上傳':''))}
 async function vLogin(){const pw=$('dvpw').value;if(!pw){vMsg('請輸入通關密語');return}vMsg('驗證中…');
 try{const g=await ghGet();if(!g){$('vnew').style.display='';vMsg('雲端還沒有資料，請貼上 GitHub token 建立');return}
 let k;try{k=await vKey(pw,b64d(g.v.salt));await vDec(k,g.v.tok)}catch(e){vMsg('通關密語錯誤');return}
 await vOpen(k,g);$('dvpw').value='';if($('dvrem').checked)localStorage.setItem('pc4vk',b64e(await crypto.subtle.exportKey('raw',k)))}catch(e){vMsg(e.message)}}
 async function vCreate(){const pw=$('dvpw').value,tok=$('dvtok').value.trim();if(pw.length<12){vMsg('通關密語至少 12 個字元，建議 16 個以上');return}if(!tok){vMsg('請貼上 GitHub token');return}
 vMsg('建立中…');try{const salt=crypto.getRandomValues(new Uint8Array(16)),k=await vKey(pw,salt),l=DV.map(r=>({id:nid(),...r}));
-const v={v:1,salt:b64e(salt),tok:await vEnc(k,tok),div:await vEnc(k,l)};if(!await ghPut(tok,v,null,'create dividend vault'))throw new Error('雲端已有資料，請直接登入');
+const v={v:1,salt:b64e(salt),tok:await vEnc(k,tok),div:await vEnc(k,l),set:await vEnc(k,{o:(save(),curSet()),u:lsu()||Date.now()})};if(!await ghPut(tok,v,null,'create dividend vault'))throw new Error('雲端已有資料，請直接登入');
 VK=k;VTOK=tok;DV=l;dvSave();$('dvpw').value='';$('dvtok').value='';$('vnew').style.display='none';vUI();dvRender();
 if($('dvrem').checked)localStorage.setItem('pc4vk',b64e(await crypto.subtle.exportKey('raw',k)));vMsg('已建立並登入')}catch(e){vMsg(e.message)}}
 async function vRetoken(){const tok=$('dvtok2').value.trim();if(!tok)return;vMsg('更換中…');try{const g=await ghGet(tok);if(!await ghPut(tok,{...g.v,tok:await vEnc(VK,tok)},g.sha,'update token'))throw new Error('寫入衝突，請再試一次');VTOK=tok;$('dvtok2').value='';vMsg('token 已更換')}catch(e){vMsg(e.message)}}
@@ -387,10 +399,10 @@ PX=N.map((_,k)=>{const r=RAW[RAW.length-1];return r[k+1]*(UD(k)?r[N.length+1]:1)
 const DF=(o,v)=>N.map(t=>t in o?o[t]:v);
 wi('wa',DF({GLDM:30,GOVT:500,VT:300,'0050':5000,'00646':2000,VXUS:200},0),'股','sh','am');wi('wb',DF({GLDM:15,GOVT:10,VT:40,'0050':20,'00646':10,VXUS:5},0),'%','wb','bm');
 restore();
-document.querySelectorAll('input[type=number],input[type=range],select').forEach(e=>!e.id.startsWith('dv')&&e.id!='qcol'&&e.addEventListener('input',()=>{showB();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
+document.querySelectorAll('input[type=number],input[type=range],select').forEach(e=>!e.id.startsWith('dv')&&e.id!='qcol'&&e.addEventListener('input',()=>{showB();markSet();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
 $('tbD').onclick=()=>tab('D');$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
-const qc=()=>{try{document.body.classList.toggle('gup',$('qcol').value=='g')}catch(e){}};$('qcol').onchange=()=>{qc();save()};qc();$('tbF').onclick=()=>tab('F');$('tbH').onclick=()=>tab('H');
+const qc=()=>{try{document.body.classList.toggle('gup',$('qcol').value=='g')}catch(e){}};$('qcol').onchange=()=>{qc();save();markSet()};qc();$('tbF').onclick=()=>tab('F');$('tbH').onclick=()=>tab('H');
 {const t=new Date();$('dvd').value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`}
 $('dvt').innerHTML='<option value="">其他</option>'+[...N].sort(TKS).map(t=>`<option${t=='GOVT'?' selected':''}>${t}</option>`).join('');
 $('dvadd').onclick=()=>{const d=$('dvd').value,a=+$('dva').value,t=$('dvt').value;if(!d||!(a>0)){dvMsg('請選擇日期並輸入金額');return}const rec={id:nid(),d,t,a:Math.round(a)};DVP=0;$('dva').value='';dvApply(l=>l.push(rec),'add dividend','已新增')};
