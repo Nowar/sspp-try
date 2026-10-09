@@ -86,7 +86,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 </div>
 
 <div class="card"><h2>配置一覽</h2>
-<div class="sum">各標的比例（A 調整前／B 調整後）</div><div class="ch" style="height:190px"><canvas id="cv1"></canvas></div>
+<div class="sum">各標的金額（萬台幣，A 調整前／B 調整後；段內數字為萬，B 用 A 的總淨值重新配置，所以兩條總長相同）</div><div class="ch" style="height:190px"><canvas id="cv1"></canvas></div>
 <div class="sum" style="margin-top:12px">這次調整要買賣的金額（萬台幣，右買左賣）</div><div class="sum">依 5/25 法則：與目標比例差超過 5 個百分點，或超過目標比例的 25%（取較小者）才列出</div><div class="ch" id="cv2w" style="height:260px"><canvas id="cv2"></canvas></div><div class="note" id="cv2n"></div>
 <div style="margin-top:12px"><div class="sum">資產類別</div><div class="ch" style="height:220px"><canvas id="cv3"></canvas></div></div>
 <div class="note">圓環：外圈是 B 調整後，內圈是 A 調整前。單一市場股票指 0050、2454（集中在台灣）。</div></div>
@@ -351,8 +351,11 @@ const TWS=new Set(['0050','2454']);  // 單一市場（台灣）集中風險較�
 const COL=i=>{if(TWS.has(N[i])){const P=['#6c3483','#a569bd','#d2b4de','#4a235a'],k=N.slice(0,i).filter(n=>TWS.has(n)).length;return P[k%P.length]}const c=CLS(N[i]),k=N.slice(0,i).filter(n=>CLS(n)==c&&!TWS.has(n)).length,L=SHADE[c];return L[k%L.length]};
 function drawAlloc(a,tot,wb){if(!(tot>0))return;const wa=a.map(x=>x/tot),d=wb.map((w,i)=>w*tot-a[i]),c=base(),P=x=>(x*100).toFixed(1)+'%';
 const small={responsive:true,maintainAspectRatio:false,animation:false};
-mk('cv1',{type:'bar',data:{labels:['A','B'],datasets:N.map((n,i)=>({label:n,data:[wa[i]*100,wb[i]*100],backgroundColor:COL(i),borderWidth:0,_i:i})).filter(x=>x.data[0]>1e-9||x.data[1]>1e-9)},
-options:{...small,indexAxis:'y',scales:{x:{stacked:true,max:100,ticks:{callback:v=>v+'%'}},y:{stacked:true,ticks:{autoSkip:false,font:{size:13,weight:'bold'}}}},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:i=>`${i.dataset.label} ${i.parsed.x.toFixed(1)}%（${fm((i.dataIndex?wb:wa)[i.dataset._i]*tot)}）`}}}}});
+const lum=h=>{const n=parseInt(h.slice(1),16);return(0.299*(n>>16)+0.587*(n>>8&255)+0.114*(n&255))/255};
+const seg={id:'seg',afterDatasetsDraw(ch){const x=ch.ctx;x.save();x.font='bold 11px sans-serif';x.textAlign='center';x.textBaseline='middle';
+ch.data.datasets.forEach((d,k)=>ch.getDatasetMeta(k).data.forEach((b,j)=>{if(Math.abs(b.x-b.base)>26&&d.data[j]>0){x.fillStyle=lum(d.backgroundColor)>.6?'#222':'#fff';x.fillText(Math.round(d.data[j]),(b.x+b.base)/2,b.y)}}));x.restore()}};
+mk('cv1',{type:'bar',data:{labels:['A','B'],datasets:N.map((n,i)=>({label:n,data:[wa[i]*tot,wb[i]*tot],backgroundColor:COL(i),borderWidth:0,_i:i})).filter(x=>x.data[0]>1e-9||x.data[1]>1e-9)},
+options:{...small,indexAxis:'y',scales:{x:{stacked:true,max:tot,ticks:{callback:v=>Math.round(v)}},y:{stacked:true,ticks:{autoSkip:false,font:{size:13,weight:'bold'}}}},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:i=>`${i.dataset.label} ${fm(i.parsed.x)}（${((i.dataIndex?wb:wa)[i.dataset._i]*100).toFixed(1)}%）`}}}},plugins:[seg]});
 const thr=i=>Math.min(.05,.25*wb[i]),need=i=>Math.abs(wa[i]-wb[i])>thr(i)+1e-12,ix=N.map((_,i)=>i).filter(need),skip=N.map((_,i)=>i).filter(i=>!need(i)&&(a[i]>1e-9||wb[i]>1e-9));
 $('cv2n').textContent=(ix.length?'':'全部標的都在門檻內，這次不需要再平衡。')+(skip.length?'未達門檻、不需調整：'+skip.map(i=>`${N[i]}（差 ${(Math.abs(wa[i]-wb[i])*100).toFixed(1)}，門檻 ${(thr(i)*100).toFixed(1)} 個百分點）`).join('、'):'');
 $('cv2w').style.height=(ix.length?ix.length*28+40:0)+'px';
