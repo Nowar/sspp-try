@@ -39,7 +39,7 @@ th{color:var(--mu);font-weight:500;font-size:13px}th.a{color:var(--a)}th.b{color
 .dvf{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
 .dvf input,.dvf select{width:100%;min-width:0;font-size:14px;padding:7px 6px}
 .dvf .btn{padding:7px 12px;font-size:14px}
-.lng{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}.lng label{font-size:12px;color:var(--mu)}.lng input{width:100%;margin-top:2px}
+.lng{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}.lng>div{font-size:12px;color:var(--mu)}.lng input{width:100%;margin-top:2px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .up{color:var(--bad)}.dn{color:var(--good)}
@@ -115,12 +115,12 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <details class="card"><summary>負債（計算淨值用）</summary>
 <div class="note" style="margin:0 0 4px">只存在你的瀏覽器；登入雲端同步時會跟其他設定一起加密同步，不會出現在公開的 repo。以本息平均攤還、固定利率、每月同一天繳款、未提前還款估算；寬限期內只繳利息、本金不變。</div>
 <div style="margin-top:10px"><b>信貸</b><div class="lng">
-<label>本金（萬）<input type="number" id="ln1p" min="0" step="any" inputmode="decimal"></label><label>起始日<input type="date" id="ln1d"></label>
-<label>年期（年）<input type="number" id="ln1y" min="0" step="1" inputmode="numeric"></label><label>年利率（%）<input type="number" id="ln1r" min="0" step="0.01" inputmode="decimal"></label>
-<label>寬限期（年）<input type="number" id="ln1g" min="0" step="1" inputmode="numeric" value="0"></label></div></div><div style="margin-top:10px"><b>房貸</b><div class="lng">
-<label>本金（萬）<input type="number" id="ln2p" min="0" step="any" inputmode="decimal"></label><label>起始日<input type="date" id="ln2d"></label>
-<label>年期（年）<input type="number" id="ln2y" min="0" step="1" inputmode="numeric"></label><label>年利率（%）<input type="number" id="ln2r" min="0" step="0.01" inputmode="decimal"></label>
-<label>寬限期（年）<input type="number" id="ln2g" min="0" step="1" inputmode="numeric" value="0"></label></div></div>
+<div>本金（萬）<input type="number" id="ln1p" min="0" step="any" inputmode="decimal"></div><div>起始日<input type="date" id="ln1d"></div>
+<div>年期（年）<input type="number" id="ln1y" min="0" step="1" inputmode="numeric"></div><div>年利率（%）<input type="number" id="ln1r" min="0" step="0.01" inputmode="decimal"></div>
+<div>寬限期（年）<input type="number" id="ln1g" min="0" step="1" inputmode="numeric" value="0"></div></div></div><div style="margin-top:10px"><b>房貸</b><div class="lng">
+<div>本金（萬）<input type="number" id="ln2p" min="0" step="any" inputmode="decimal"></div><div>起始日<input type="date" id="ln2d"></div>
+<div>年期（年）<input type="number" id="ln2y" min="0" step="1" inputmode="numeric"></div><div>年利率（%）<input type="number" id="ln2r" min="0" step="0.01" inputmode="decimal"></div>
+<div>寬限期（年）<input type="number" id="ln2g" min="0" step="1" inputmode="numeric" value="0"></div></div></div>
 <div class="note" id="lnsum" style="margin-top:10px;white-space:pre-line"></div></details>
 </section>
 <section id="tabF">
@@ -443,7 +443,8 @@ if(!(v>0)){bad++;return}const k=d+'|'+t+'|'+v;if(key.has(k)){dup++;return}key.ad
 DVP=0;dvApply(l=>{const h=new Set(l.map(kOf));adds.forEach(r=>{if(!h.has(kOf(r))){l.push(r);h.add(kOf(r))}})},'import dividends',`匯入 ${add} 筆`+(dup?`，略過重複 ${dup} 筆`:'')+(bad?`，無法辨識 ${bad} 行`:''));$('dvf').value=''};
 rd.readAsText(f)};
 dvLoad();DVOK=true;dvRender();vInit();
-document.querySelectorAll('[id^=ln]').forEach(e=>e.addEventListener('input',()=>{qNet();save();markSet()}));qNet();
+document.querySelectorAll('[id^=ln]').forEach(e=>{e.addEventListener('input',()=>{qNet();save();markSet()});e.addEventListener('change',()=>{qNet();save();markSet()})});
+document.querySelectorAll('input[type=date]').forEach(e=>e.addEventListener('click',()=>{try{e.showPicker&&e.showPicker()}catch(x){}}));qNet();
 try{tab(localStorage.getItem('pc4tab')||'F')}catch(e){tab('F')}
 update();showB()}
 init();
