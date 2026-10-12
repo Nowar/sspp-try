@@ -39,6 +39,7 @@ th{color:var(--mu);font-weight:500;font-size:13px}th.a{color:var(--a)}th.b{color
 .dvf{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:center}
 .dvf input,.dvf select{width:100%;min-width:0;font-size:14px;padding:7px 6px}
 .dvf .btn{padding:7px 12px;font-size:14px}
+.lng{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}.lng label{font-size:12px;color:var(--mu)}.lng input{width:100%;margin-top:2px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .up{color:var(--bad)}.dn{color:var(--good)}
@@ -107,10 +108,20 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 </section>
 <section id="tabQ" style="display:none">
 <div class="card"><div class="row"><h2 style="margin:0">即時報價</h2><span><select id="qcol" style="font-size:13px;padding:5px 6px"><option value="r">漲紅跌綠</option><option value="g">漲綠跌紅</option></select> <button id="qbtn" class="btn2">更新</button></span></div>
-<div class="sum" id="qsum" style="margin:6px 0 4px;font-size:15px"></div>
+<div class="sum" id="qsum" style="margin:6px 0 2px;font-size:15px"></div><div class="sum" id="qnet" style="margin:0 0 4px;font-size:14px"></div>
 <div class="tw"><table id="qt"></table></div>
 <div class="note" id="qmsg"></div>
 <div class="note">報價來自 Yahoo：美股接近即時，台股可能延遲數分鐘到 20 分鐘。市值依 A 區持有股數與即時匯率換算成台幣；各列損益以前一交易日收盤與匯率為基準；上方「盤中變動」只加總灰底（盤中）且有持有的標的。只列出 A 區有填持有股數的標的（都沒填時列出全部）。開著這個分頁時每 5 分鐘自動更新，要更快請按「更新」。灰底＝目前正在盤中。</div></div>
+<details class="card"><summary>負債（計算淨值用）</summary>
+<div class="note" style="margin:0 0 4px">只存在你的瀏覽器；登入雲端同步時會跟其他設定一起加密同步，不會出現在公開的 repo。以本息平均攤還、固定利率、每月同一天繳款、未提前還款估算；寬限期內只繳利息、本金不變。</div>
+<div style="margin-top:10px"><b>信貸</b><div class="lng">
+<label>本金（萬）<input type="number" id="ln1p" min="0" step="any" inputmode="decimal"></label><label>起始日<input type="date" id="ln1d"></label>
+<label>年期（年）<input type="number" id="ln1y" min="0" step="1" inputmode="numeric"></label><label>年利率（%）<input type="number" id="ln1r" min="0" step="0.01" inputmode="decimal"></label>
+<label>寬限期（年）<input type="number" id="ln1g" min="0" step="1" inputmode="numeric" value="0"></label></div></div><div style="margin-top:10px"><b>房貸</b><div class="lng">
+<label>本金（萬）<input type="number" id="ln2p" min="0" step="any" inputmode="decimal"></label><label>起始日<input type="date" id="ln2d"></label>
+<label>年期（年）<input type="number" id="ln2y" min="0" step="1" inputmode="numeric"></label><label>年利率（%）<input type="number" id="ln2r" min="0" step="0.01" inputmode="decimal"></label>
+<label>寬限期（年）<input type="number" id="ln2g" min="0" step="1" inputmode="numeric" value="0"></label></div></div>
+<div class="note" id="lnsum" style="margin-top:10px;white-space:pre-line"></div></details>
 </section>
 <section id="tabF">
 <div class="card"><h2 id="ft">未來模擬</h2><div class="tw"><table id="t2"></table></div>
@@ -375,6 +386,15 @@ const P=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:q.tz||'UTC'
 m=(+P.hour%24)*60+ +P.minute;if(P.weekday=='Sat'||P.weekday=='Sun')return false;
 return q.tz=='Asia/Taipei'?m>=540&&m<810:q.tz=='America/New_York'?m>=570&&m<960:false}
 const qTime=q=>{const d=new Date(q.time*1000),n=new Date(),p=x=>String(x).padStart(2,'0'),hm=`${p(d.getHours())}:${p(d.getMinutes())}`;return d.toDateString()==n.toDateString()?hm:`${p(d.getMonth()+1)}/${p(d.getDate())} ${hm}`};
+let QTV=null;
+// 貸款目前本金餘額：寬限期只繳息；之後以剩餘期數本息平均攤還
+function loanBal(i){const P=(+$('ln'+i+'p').value||0)*1e4,d=$('ln'+i+'d').value,Y=+$('ln'+i+'y').value||0,R=(+$('ln'+i+'r').value||0)/100,G=+$('ln'+i+'g').value||0;
+if(!P||!d||!Y)return null;const s=new Date(d+'T00:00'),t=new Date(),n=Y*12,g=Math.min(n,G*12),r=R/12;
+let k=(t.getFullYear()-s.getFullYear())*12+(t.getMonth()-s.getMonth())-(t.getDate()<s.getDate()?1:0);k=Math.max(0,Math.min(n,k));
+if(k<=g)return{b:P,k,n,pay:P*r,grace:true};const m=n-g,j=k-g,M=r?P*r/(1-(1+r)**-m):P/m;return{b:Math.max(0,r?P*(1+r)**j-M*((1+r)**j-1)/r:P-M*j),k,n,pay:M}}
+function qNet(){const L=[[1,'信貸'],[2,'房貸']].map(([i,nm])=>({nm,x:loanBal(i)})).filter(o=>o.x),debt=L.reduce((s,o)=>s+o.x.b,0)/1e4;
+$('lnsum').textContent=L.length?L.map(o=>`${o.nm}：第 ${o.x.k}/${o.x.n} 期，本金餘額 ${fm(o.x.b/1e4)}，${o.x.grace?'寬限期每月利息':'每月應繳'}約 ${Math.round(o.x.pay).toLocaleString('en-US')} 元`).join('\n'):'尚未填寫負債';
+$('qnet').innerHTML=QTV!=null&&L.length?`淨值 ≈ <b>${fm(QTV-debt)}</b><span class="sum">（總市值 − 負債 ${fm(debt)}）</span>`:''}
 async function qLoad(){$('qmsg').textContent='更新中…';
 try{const held=N.map((_,i)=>i).filter(i=>(+$('sh_'+N[i]).value||0)>0),L=held.length?held:N.map((_,i)=>i);const r=await fetch(QURL+'?s='+encodeURIComponent([...L.map(i=>ysym(N[i])),'TWD=X'].join(',')),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
 const j=await r.json(),Q=Object.fromEntries(j.q.map(x=>[x.s,x])),fx=Q['TWD=X'],okfx=fx&&!fx.error&&fx.price;
@@ -385,7 +405,7 @@ if(!q||q.error||q.price==null||(usd&&!okfx)){h+=`<tr><td>${t}</td><td colspan="4
 const c=q.price-q.prev,v=sh*q.price*(usd?fx.price:1)/1e4,vp=sh*q.prev*(usd?fx.prev:1)/1e4,dv=v-vp;tv+=v;tp+=vp;if(sh&&qOpen(q)){lv+=v;lp+=vp;ln++}
 h+=`<tr class="${qOpen(q)?'live':''}"><td>${t}</td><td>${q.price.toFixed(2)}<br><span class="sum">${usd?'US$':'NT$'}</span></td><td class="${cl(c)}">${chg(c,q.prev?c/q.prev:0)}</td><td>${sh?fm(v)+`<br><span class="${cl(dv)}">${dv>=0?'+':''}${dv.toFixed(1)} 萬</span>`:'<span class="sum">未持有</span>'}</td><td class="sum">${qTime(q)}</td></tr>`});
 if(okfx){const c=fx.price-fx.prev;h+=`<tr class="${qOpen(fx)?'live':''}"><td>USD/TWD</td><td>${fx.price.toFixed(3)}</td><td class="${cl(c)}">${chg(c,c/fx.prev)}</td><td class="sum">匯率</td><td class="sum">${qTime(fx)}</td></tr>`}
-$('qt').innerHTML=h;const d=lv-lp;
+$('qt').innerHTML=h;QTV=tv;qNet();const d=lv-lp;
 $('qsum').innerHTML=tv?`總市值 <b>${fm(tv)}</b>，`+(ln?`盤中變動 <b class="${cl(d)}">${d>=0?'+':''}${d.toFixed(1)} 萬（${d>=0?'+':''}${(lp?d/lp*100:0).toFixed(2)}%）</b><span class="sum">（${ln} 檔盤中）</span>`:'<span class="sum">目前持有的標的都不在盤中</span>'):'A 區沒有填持有股數，只顯示報價';
 const n=new Date(),p=x=>String(x).padStart(2,'0');$('qmsg').textContent=`更新於 ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`}
 catch(e){$('qmsg').textContent='抓不到即時報價：'+e.message}}
@@ -423,6 +443,7 @@ if(!(v>0)){bad++;return}const k=d+'|'+t+'|'+v;if(key.has(k)){dup++;return}key.ad
 DVP=0;dvApply(l=>{const h=new Set(l.map(kOf));adds.forEach(r=>{if(!h.has(kOf(r))){l.push(r);h.add(kOf(r))}})},'import dividends',`匯入 ${add} 筆`+(dup?`，略過重複 ${dup} 筆`:'')+(bad?`，無法辨識 ${bad} 行`:''));$('dvf').value=''};
 rd.readAsText(f)};
 dvLoad();DVOK=true;dvRender();vInit();
+document.querySelectorAll('[id^=ln]').forEach(e=>e.addEventListener('input',()=>{qNet();save();markSet()}));qNet();
 try{tab(localStorage.getItem('pc4tab')||'F')}catch(e){tab('F')}
 update();showB()}
 init();
