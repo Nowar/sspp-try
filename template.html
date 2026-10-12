@@ -58,11 +58,28 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 .er{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 @media(max-width:560px){.er{grid-template-columns:1fr 1fr}}
 .er div{font-size:12px;color:var(--mu)}.er input{width:100%}
+#print{display:none}
+@media print{
+ @page{size:A4;margin:12mm}
+ body{background:#fff!important;color:#111!important;font-size:11pt}
+ main{display:none!important}
+ #print{display:block!important;color:#111}
+ #print h1{font-size:18pt;margin:0 0 2pt}#print h2{font-size:13pt;margin:14pt 0 6pt;border-bottom:1px solid #999;padding-bottom:2pt}
+ #print .meta{color:#555;font-size:9pt;margin-bottom:8pt}
+ #print table{width:100%;min-width:0;border-collapse:collapse;font-size:10pt;margin-bottom:6pt}
+ #print th,#print td{border-bottom:1px solid #ccc;padding:3pt 5pt;color:#111;background:none!important}
+ #print th{color:#444;font-weight:600}
+ #print .tot td{font-weight:700;border-top:1.5px solid #333}
+ #print .pbr{break-before:page;page-break-before:always}
+ #print img{width:100%;max-width:100%}
+ #print .kv{display:flex;gap:18pt;flex-wrap:wrap;font-size:11pt;margin:4pt 0 8pt}#print .kv b{font-size:13pt}
+ #print .note{color:#666;font-size:8.5pt}
+}
 </style>
 </head>
 <body>
 <main>
-<h1>投資組合調整比較</h1>
+<div class="row" style="margin:8px 0 2px"><h1 style="margin:0">投資組合調整比較</h1><button id="pdfbtn" class="btn2" style="font-size:13px">輸出 PDF</button></div>
 <div class="sub" id="span"></div>
 <div id="warn" class="warn" style="display:none">目前是合成示範資料（非真實行情），僅供預覽版面。真實資料版請用 build_site.py 產生。</div>
 
@@ -145,6 +162,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 </section>
 <div class="sub" id="src"></div>
 </main>
+<div id="print"></div>
 <script>
 const DATA=/*__DATA__*/null;
 let N=['GLDM','GOVT','VT','2454','0050','009826','00646','VXUS'],NM=['GLDM 黃金','GOVT 美公債','VT 全球股票','2454 聯發科','0050 台股','009826 全球股票(台幣)','00646 美國S&P500','VXUS 美國以外股票'];
@@ -397,7 +415,7 @@ $('lnsum').textContent=L.length?L.map(o=>`${o.nm}：第 ${o.x.k}/${o.x.n} 期，
 $('qnet').innerHTML=QTV!=null&&L.length?`淨值 ≈ <b>${fm(QTV-debt)}</b><span class="sum">（總市值 − 負債 ${fm(debt)}）</span>`:''}
 async function qLoad(){$('qmsg').textContent='更新中…';
 try{const held=N.map((_,i)=>i).filter(i=>(+$('sh_'+N[i]).value||0)>0),L=held.length?held:N.map((_,i)=>i);const r=await fetch(QURL+'?s='+encodeURIComponent([...L.map(i=>ysym(N[i])),'TWD=X'].join(',')),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
-const j=await r.json(),Q=Object.fromEntries(j.q.map(x=>[x.s,x])),fx=Q['TWD=X'],okfx=fx&&!fx.error&&fx.price;
+const j=await r.json(),Q=Object.fromEntries(j.q.map(x=>[x.s,x])),fx=Q['TWD=X'],okfx=fx&&!fx.error&&fx.price;QQ=Q;QQT=new Date();
 let tv=0,tp=0,lv=0,lp=0,ln=0,h='<tr><th>標的</th><th>價格</th><th>漲跌</th><th>市值／今日</th><th>時間</th></tr>';
 const chg=(c,pc)=>`${c>0?'+':''}${c.toFixed(2)}<br>${c>0?'+':''}${(pc*100).toFixed(2)}%`,cl=c=>c>0?'up':c<0?'dn':'';
 L.forEach(i=>{const t=N[i],q=Q[ysym(t)],sh=+$('sh_'+t).value||0,usd=UD(i);
@@ -409,6 +427,31 @@ $('qt').innerHTML=h;QTV=tv;qNet();const d=lv-lp;
 $('qsum').innerHTML=tv?`總市值 <b>${fm(tv)}</b>，`+(ln?`盤中變動 <b class="${cl(d)}">${d>=0?'+':''}${d.toFixed(1)} 萬（${d>=0?'+':''}${(lp?d/lp*100:0).toFixed(2)}%）</b><span class="sum">（${ln} 檔盤中）</span>`:'<span class="sum">目前持有的標的都不在盤中</span>'):'A 區沒有填持有股數，只顯示報價';
 const n=new Date(),p=x=>String(x).padStart(2,'0');$('qmsg').textContent=`更新於 ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`}
 catch(e){$('qmsg').textContent='抓不到即時報價：'+e.message}}
+// ---------- 輸出 PDF（列印成 PDF 的快照：第 1 頁現況、第 2 頁起股利）----------
+let QQ=null,QQT=null;
+function exportPDF(){const t=new Date(),p=x=>String(x).padStart(2,'0'),ts=`${t.getFullYear()}-${p(t.getMonth()+1)}-${p(t.getDate())} ${p(t.getHours())}:${p(t.getMinutes())}`;
+const r=RAW[RAW.length-1],live=QQ&&QQ['TWD=X']&&!QQ['TWD=X'].error&&QQ['TWD=X'].price,fx=live?QQ['TWD=X'].price:r[N.length+1],n0=x=>Math.round(x).toLocaleString('en-US');
+const rows=[];let tot=0;N.forEach((n,i)=>{const sh=+$('sh_'+n).value||0;if(!sh)return;const q=live&&QQ[ysym(n)],px=q&&!q.error&&q.price!=null?q.price:r[i+1],v=sh*px*(UD(i)?fx:1)/1e4;tot+=v;rows.push({n,nm:NM[i],sh,px,usd:UD(i),v})});
+const src=live?`即時報價（${p(QQT.getHours())}:${p(QQT.getMinutes())} 取得）`:`最近收盤價（資料日 ${DATA&&DATA.asof?Object.values(DATA.asof).sort().pop():r[0]}）`;
+const L=[[1,'信貸'],[2,'房貸']].map(([i,nm])=>({nm,x:loanBal(i)})).filter(o=>o.x),debt=L.reduce((s,o)=>s+o.x.b,0)/1e4;
+const cls={};rows.forEach(o=>{const c=TWS.has(o.n)?'單一市場股票':CLS(o.n);cls[c]=(cls[c]||0)+o.v});
+let h=`<h1>投資組合快照</h1><div class="meta">產生時間 ${ts}｜價格來源：${src}｜美元匯率 ${fx.toFixed(3)}</div>
+<h2>現況</h2><div class="kv"><span>總市值 <b>${fm(tot)}</b></span>`+(L.length?`<span>負債 <b>${fm(debt)}</b></span><span>淨值 <b>${fm(tot-debt)}</b></span>`:'')+`</div>
+<table><tr><th>標的</th><th>股數</th><th>價格</th><th>台幣市值</th><th>佔比</th></tr>`+rows.map(o=>`<tr><td>${o.nm}</td><td>${n0(o.sh)}</td><td>${o.usd?'US$':'NT$'} ${o.px.toFixed(2)}</td><td>${fm(o.v)}</td><td>${tot?(o.v/tot*100).toFixed(1):0}%</td></tr>`).join('')+`<tr class="tot"><td>合計</td><td></td><td></td><td>${fm(tot)}</td><td>100%</td></tr></table>
+<h2>資產類別</h2><table><tr><th>類別</th><th>台幣市值</th><th>佔比</th></tr>`+['股票','單一市場股票','債券','黃金'].filter(c=>cls[c]).map(c=>`<tr><td>${c}</td><td>${fm(cls[c])}</td><td>${(cls[c]/tot*100).toFixed(1)}%</td></tr>`).join('')+`</table>`;
+if(L.length)h+=`<h2>負債</h2><table><tr><th>項目</th><th>期數</th><th>本金餘額</th><th>每月應繳</th></tr>`+L.map(o=>`<tr><td>${o.nm}${o.x.grace?'（寬限期）':''}</td><td>${o.x.k}/${o.x.n}</td><td>${fm(o.x.b/1e4)}</td><td>${n0(o.x.pay)} 元</td></tr>`).join('')+`<tr class="tot"><td>合計</td><td></td><td>${fm(debt)}</td><td></td></tr></table><div class="note">負債以本息平均攤還、固定利率估算。</div>`;
+const alive=[...DV].sort((a,b)=>a.d<b.d?1:-1);
+h+=`<div class="pbr"></div><h2>股利</h2>`;
+if(!alive.length)h+='<div class="note">尚無股利紀錄</div>';
+else{const sum=alive.reduce((s,x)=>s+x.a,0);h+=`<div class="kv"><span>累計股利 <b>${n0(sum)} 元</b></span><span>共 ${alive.length} 筆</span></div><h2>每年統計（元）</h2><table>${$('dvy').innerHTML}</table>`;
+if(charts.dvc){const cv=document.createElement('canvas');cv.width=1000;cv.height=380;const d=charts.dvc.data,c=new Chart(cv,{type:'bar',data:{labels:[...d.labels],datasets:d.datasets.map(x=>({...x,data:[...x.data]}))},
+options:{responsive:false,animation:false,devicePixelRatio:2,scales:{x:{ticks:{color:'#333'},grid:{color:'#ddd'}},y:{beginAtZero:true,ticks:{color:'#333',callback:v=>n0(v)},grid:{color:'#ddd'}}},plugins:{legend:{position:'bottom',labels:{color:'#333'}}}}});
+h+=`<h2>平均每月股利（元）</h2><img src="${cv.toDataURL('image/png')}">`;c.destroy()}
+h+=`<h2>股利明細</h2><table><tr><th>日期</th><th>標的</th><th>金額（元）</th></tr>`+alive.map(x=>`<tr><td>${x.d}</td><td>${x.t||'其他'}</td><td>${n0(x.a)}</td></tr>`).join('')+'</table>'}
+h+=`<div class="note" style="margin-top:10pt">本快照由「投資組合調整比較」網頁產生，僅供個人留存參考，不構成投資建議。</div>`;
+$('print').innerHTML=h;const old=document.title;document.title=`投資組合快照-${ts.slice(0,10)}`;
+const done=()=>{document.title=old;$('print').innerHTML='';window.removeEventListener('afterprint',done)};window.addEventListener('afterprint',done);
+setTimeout(()=>window.print(),100)}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 const OLD=['GLDM','GOVT','VT','0050','00646','VXUS'];  // 舊版以位置編號存的欄位，轉成以代號存
 function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const m=k.match(/^(sh|wb)(\d)$/),id=m?m[1]+'_'+OLD[+m[2]]:k;if(m&&(id in o))continue;const e=$(id);if(e)e.value=o[k]}}catch(e){}}
@@ -424,7 +467,7 @@ wi('wa',DF({GLDM:30,GOVT:500,VT:300,'0050':5000,'00646':2000,VXUS:200},0),'股',
 restore();
 document.querySelectorAll('input[type=number],input[type=range],select').forEach(e=>!e.id.startsWith('dv')&&e.id!='qcol'&&e.addEventListener('input',()=>{showB();markSet();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
-$('tbD').onclick=()=>tab('D');$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
+$('tbD').onclick=()=>tab('D');$('pdfbtn').onclick=exportPDF;$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
 const qc=()=>{try{document.body.classList.toggle('gup',$('qcol').value=='g')}catch(e){}};$('qcol').onchange=()=>{qc();save();markSet()};qc();$('tbF').onclick=()=>tab('F');$('tbH').onclick=()=>tab('H');
 {const t=new Date();$('dvd').value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`}
 $('dvt').innerHTML='<option value="">其他</option>'+[...N].sort(TKS).map(t=>`<option${t=='GOVT'?' selected':''}>${t}</option>`).join('');
