@@ -271,7 +271,7 @@ function tab(k){if(k=='Q'){qLoad();clearInterval(QT);QT=setInterval(qLoad,300000
 ['D','Q','F','H'].forEach(x=>{$('tab'+x).style.display=x==k?'':'none';$('tb'+x).classList.toggle('on',x==k)});try{localStorage.setItem('pc4tab',k)}catch(e){}
 Object.values(charts).forEach(c=>c.resize&&c.resize())}
 // ---------- 股利紀錄 ----------
-let DV=[],DVOK=false,DVP=0;const DVPS=6;
+let DV=[],DVOK=false,DVP=0;const DVPS=10;
 const yuan=x=>Math.round(x).toLocaleString('en-US')+' 元';
 function dvLoad(){try{DV=JSON.parse(localStorage.getItem('pc4div')||'[]')}catch(e){DV=[]}}
 function dvMsg(t){const e=$('dvmsg');e.textContent=t;clearTimeout(e._t);e._t=setTimeout(()=>e.textContent='',5000)}
