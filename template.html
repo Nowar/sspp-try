@@ -40,6 +40,7 @@ th{color:var(--mu);font-weight:500;font-size:13px}th.a{color:var(--a)}th.b{color
 .dvf input,.dvf select{width:100%;min-width:0;font-size:14px;padding:7px 6px}
 .dvf .btn{padding:7px 12px;font-size:14px}
 .lng{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}.lng>div{font-size:12px;color:var(--mu)}.lng input{width:100%;margin-top:2px}
+.sw{position:relative;display:inline-block;width:38px;height:22px;flex:none}.sw input{opacity:0;width:0;height:0}.sw span{position:absolute;inset:0;background:var(--bd);border-radius:22px;transition:.2s;cursor:pointer}.sw span:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}.sw input:checked+span{background:var(--b)}.sw input:checked+span:before{transform:translateX(16px)}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .up{color:var(--bad)}.dn{color:var(--good)}
@@ -79,7 +80,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 </head>
 <body>
 <main>
-<div class="row" style="margin:8px 0 2px"><h1 style="margin:0">投資組合調整比較</h1><button id="pdfbtn" class="btn2" style="font-size:13px">輸出 PDF</button></div>
+<div class="row" style="margin:8px 0 2px"><h1 style="margin:0">投資組合調整比較</h1><span style="display:flex;align-items:center;gap:6px"><label class="sw"><input type="checkbox" id="hidez" checked><span></span></label><span class="sum">顯示未持有</span><button id="pdfbtn" class="btn2" style="font-size:13px">輸出 PDF</button></span></div>
 <div class="sub" id="span"></div>
 <div id="warn" class="warn" style="display:none">目前是合成示範資料（非真實行情），僅供預覽版面。真實資料版請用 build_site.py 產生。</div>
 
@@ -299,14 +300,16 @@ const shade={id:'dep',beforeDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{x}}=
 afterDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{y}}=ch,py=y.getPixelForValue(0);ctx.save();ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--tx').trim()||'#888';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(ca.left,py);ctx.lineTo(ca.right,py);ctx.stroke();ctx.restore()}};
 mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1],c.b,'B')]},options:o3,plugins:[shade]})}
 
-function showB(){wA();if(DVOK)dvRender();const a=aAmt(),tot=a.reduce((x,y)=>x+y,0),w=wB();
+// 「顯示未持有」關閉時：A 區隱藏沒持有的標的；B 區只在沒持有且沒填目標／加減時隱藏
+function vis(){const h=!$('hidez').checked;N.forEach(n=>{const held=NUM('sh_'+n)>0,used=(+$('wb_'+n).value||0)>0||NUM('dl_'+n)!==0;$('rsh_'+n).style.display=h&&!held?'none':'';$('rwb_'+n).style.display=$('rdl_'+n).style.display=h&&!held&&!used?'none':''})}
+function showB(){wA();vis();if(DVOK)dvRender();const a=aAmt(),tot=a.reduce((x,y)=>x+y,0),w=wB();
 const SHM=$('bmode').value=='sh';$('wb').style.display=SHM?'none':'';$('wdl').style.display=SHM?'':'none';
 if(SHM)N.forEach((n,i)=>{const s0=NUM('sh_'+n)||0,dl=DL(n),ns=s0+dl;$('dm'+i).textContent=s0||dl?`調整後 ${Math.max(0,ns).toLocaleString('en-US')} 股 ≈ ${fm(BV[i])}（${(w[i]*100).toFixed(1)}%）`+(ns<0?'｜賣出超過持有':''):''});
 else N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i],sh=Math.round(d*1e4/PX[i]);$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}，約 ${sh>=0?'+':''}${sh.toLocaleString('en-US')} 股）`+(tot>0&&Math.abs(a[i]/tot-w[i])<=Math.min(.05,.25*w[i])+1e-12&&(a[i]>0||w[i]>0)?'｜未達 5/25 門檻':'')});
 if(!SHM)$('sb').textContent+='｜總額 '+fm(tot);drawAlloc(a,tot,w);
 $('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winz').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
 const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，到 ${(Math.round(+$('age').value)||38)+Y} 歲時約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
-function tab(k){if(k=='Q'){qLoad();clearInterval(QT);QT=setInterval(qLoad,300000)}else clearInterval(QT);
+let CURTAB='F';function tab(k){CURTAB=k;if(k=='Q'){qLoad();clearInterval(QT);QT=setInterval(qLoad,300000)}else clearInterval(QT);
 ['D','Q','F','H'].forEach(x=>{$('tab'+x).style.display=x==k?'':'none';$('tb'+x).classList.toggle('on',x==k)});try{localStorage.setItem('pc4tab',k)}catch(e){}
 Object.values(charts).forEach(c=>c.resize&&c.resize())}
 // ---------- 股利紀錄 ----------
@@ -428,7 +431,7 @@ function qNet(){const L=[[1,'信貸'],[2,'房貸']].map(([i,nm])=>({nm,x:loanBal
 $('lnsum').textContent=L.length?L.map(o=>`${o.nm}：第 ${o.x.k}/${o.x.n} 期，本金餘額 ${fm(o.x.b/1e4)}，${o.x.grace?'寬限期每月利息':'每月應繳'}約 ${Math.round(o.x.pay).toLocaleString('en-US')} 元`).join('\n'):'尚未填寫負債';
 $('qnet').innerHTML=QTV!=null&&L.length?`淨值 ≈ <b>${fm(QTV-debt)}</b><span class="sum">（總市值 − 負債 ${fm(debt)}）</span>`:''}
 async function qLoad(){$('qmsg').textContent='更新中…';
-try{const L=N.map((_,i)=>i).sort((a,b)=>TKS(N[a],N[b]));const r=await fetch(QURL+'?s='+encodeURIComponent([...L.map(i=>ysym(N[i])),'TWD=X'].join(',')),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
+try{let L=N.map((_,i)=>i).sort((a,b)=>TKS(N[a],N[b]));if(!$('hidez').checked&&L.some(i=>NUM('sh_'+N[i])>0))L=L.filter(i=>NUM('sh_'+N[i])>0);const r=await fetch(QURL+'?s='+encodeURIComponent([...L.map(i=>ysym(N[i])),'TWD=X'].join(',')),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
 const j=await r.json(),Q=Object.fromEntries(j.q.map(x=>[x.s,x])),fx=Q['TWD=X'],okfx=fx&&!fx.error&&fx.price;QQ=Q;QQT=new Date();
 let tv=0,tp=0,lv=0,lp=0,ln=0,h='<tr><th>標的</th><th>價格</th><th>漲跌</th><th>市值／今日</th><th>時間</th></tr>';
 const chg=(c,pc)=>`${c>0?'+':''}${c.toFixed(2)}<br>${c>0?'+':''}${(pc*100).toFixed(2)}%`,cl=c=>c>0?'up':c<0?'dn':'';
@@ -466,23 +469,23 @@ h+=`<div class="note" style="margin-top:10pt">本快照由「投資組合調整�
 $('print').innerHTML=h;const old=document.title;document.title=`投資組合快照-${ts.slice(0,10)}`;
 const done=()=>{document.title=old;$('print').innerHTML='';window.removeEventListener('afterprint',done)};window.addEventListener('afterprint',done);
 setTimeout(()=>window.print(),100)}
-function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
+function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.type=='checkbox'?(e.checked?'1':'0'):e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 const OLD=['GLDM','GOVT','VT','0050','00646','VXUS'];  // 舊版以位置編號存的欄位，轉成以代號存
-function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const m=k.match(/^(sh|wb)(\d)$/),id=m?m[1]+'_'+OLD[+m[2]]:k;if(m&&(id in o))continue;const e=$(id);if(e)e.value=o[k]}}catch(e){}}
+function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const m=k.match(/^(sh|wb)(\d)$/),id=m?m[1]+'_'+OLD[+m[2]]:k;if(m&&(id in o))continue;const e=$(id);if(e){if(e.type=='checkbox')e.checked=o[k]=='1';else e.value=o[k]}}}catch(e){}}
 
 function init(){
 if(DATA){NM=DATA.names;N=NM.map(x=>x.split(' ')[0]);DY=DATA.divVT||null;setRows(DATA.rows);$('src').textContent=`資料來源：${DATA.source}；${DATA.proxyNote?DATA.proxyNote+'；':''}更新日 ${DATA.updated}；各標的最新價日期：${Object.entries(DATA.asof||{}).map(([k,v])=>k+' '+v).join('、')}。美元資產以當月底 USD/TWD 換算成台幣。`}
 else{setRows(demoRows());$('warn').style.display='block'}
 $('winz').max=Math.floor(R.length/12)+1;$('winz').value=$('winz').max;
-const wi=(p,d,u,ip,sub)=>{$(p).innerHTML=NM.map((n,i)=>`<div class="row"><label>${n}<div class="sum" id="${sub}${i}"></div></label><span>${ip=='sh'?`<input type="text" class="numc" id="${ip}_${N[i]}" value="${d[i]}" inputmode="numeric" autocomplete="off">`:`<input type="number" id="${ip}_${N[i]}" value="${d[i]}" min="0" step="any" inputmode="decimal">`} ${u}</span></div>`).join('')};
+const wi=(p,d,u,ip,sub)=>{$(p).innerHTML=NM.map((n,i)=>`<div class="row" id="r${ip}_${N[i]}"><label>${n}<div class="sum" id="${sub}${i}"></div></label><span>${ip=='sh'?`<input type="text" class="numc" id="${ip}_${N[i]}" value="${d[i]}" inputmode="numeric" autocomplete="off">`:`<input type="number" id="${ip}_${N[i]}" value="${d[i]}" min="0" step="any" inputmode="decimal">`} ${u}</span></div>`).join('')};
 PX=N.map((_,k)=>{const r=RAW[RAW.length-1];return r[k+1]*(UD(k)?r[N.length+1]:1)});
 const DF=(o,v)=>N.map(t=>t in o?o[t]:v);
-wi('wa',DF({GLDM:30,GOVT:500,VT:300,'0050':5000,'00646':2000,VXUS:200},0),'股','sh','am');wi('wb',DF({GLDM:15,GOVT:10,VT:40,'0050':20,'00646':10,VXUS:5},0),'%','wb','bm');$('wdl').innerHTML=NM.map((n,i)=>`<div class="row"><label>${n}<div class="sum" id="dm${i}"></div></label><span><select id="ds_${N[i]}" style="font-size:13px;padding:6px 4px"><option value="b">買</option><option value="s">賣</option></select> <input type="text" class="numc" id="dl_${N[i]}" value="0" inputmode="numeric" autocomplete="off" style="width:80px"> 股</span></div>`).join('');
+wi('wa',DF({GLDM:30,GOVT:500,VT:300,'0050':5000,'00646':2000,VXUS:200},0),'股','sh','am');wi('wb',DF({GLDM:15,GOVT:10,VT:40,'0050':20,'00646':10,VXUS:5},0),'%','wb','bm');$('wdl').innerHTML=NM.map((n,i)=>`<div class="row" id="rdl_${N[i]}"><label>${n}<div class="sum" id="dm${i}"></div></label><span><select id="ds_${N[i]}" style="font-size:13px;padding:6px 4px"><option value="b">買</option><option value="s">賣</option></select> <input type="text" class="numc" id="dl_${N[i]}" value="0" inputmode="numeric" autocomplete="off" style="width:80px"> 股</span></div>`).join('');
 restore();
 document.querySelectorAll('input.numc').forEach(e=>{fmtNum(e);e.addEventListener('input',()=>fmtNum(e))});
 document.querySelectorAll('input[type=number],input[type=range],input.numc,select').forEach(e=>!e.id.startsWith('dv')&&e.id!='qcol'&&e.addEventListener('input',()=>{showB();markSet();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
-$('tbD').onclick=()=>tab('D');$('pdfbtn').onclick=exportPDF;$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
+$('tbD').onclick=()=>tab('D');$('pdfbtn').onclick=exportPDF;$('hidez').addEventListener('change',()=>{save();markSet();showB();if(CURTAB=='Q')qLoad()});$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
 const qc=()=>{try{document.body.classList.toggle('gup',$('qcol').value=='g')}catch(e){}};$('qcol').onchange=()=>{qc();save();markSet()};qc();$('tbF').onclick=()=>tab('F');$('tbH').onclick=()=>tab('H');
 {const t=new Date();$('dvd').value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`}
 $('dvt').innerHTML='<option value="">其他</option>'+[...N].sort(TKS).map(t=>`<option${t=='GOVT'?' selected':''}>${t}</option>`).join('');
