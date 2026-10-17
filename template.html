@@ -96,7 +96,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="card">
 <div class="grid">
 <div class="pa"><h2>A 調整前：目前持有（股數）</h2><div id="wa"></div><div class="sum" id="sa"></div></div>
-<div class="pb"><div class="row" style="margin:0 0 10px"><h2 style="margin:0">B 調整後</h2><select id="bmode" style="font-size:13px;padding:5px 6px"><option value="pct">目標比例（%）</option><option value="sh">股數加減</option></select></div><div id="wb"></div><div id="wdl" style="display:none"></div><div class="sum" id="sb"></div></div>
+<div class="pb"><div class="row" style="margin:0 0 10px"><h2 style="margin:0">B 調整後</h2><select id="bmode" style="font-size:13px;padding:5px 6px"><option value="pct">目標比例（%）</option><option value="sh">股數加減</option></select></div><div id="wb"></div><div id="wdl" style="display:none"></div><div class="sum" id="sb"></div><div id="bcls" style="margin-top:4px;font-size:13px"></div></div>
 </div>
 <div class="note">A 以最新收盤價與匯率換算成台幣；B 選「目標比例」時用 A 的總淨值重新配置，括號內是要買賣的金額與股數；選「股數加減」時每檔選買或賣，再填股數，模擬比較只取調整後的比例、總額沿用 A，實際要投入或取回的現金顯示在 B 下方。輸入只存在你這支手機的瀏覽器裡。</div>
 <div class="row"><label>今年年紀</label><input type="number" id="age" value="38" min="0" max="120" step="1" inputmode="numeric"></div>
@@ -309,7 +309,9 @@ function showB(){wA();vis();if(DVOK)dvRender();const a=aAmt(),tot=a.reduce((x,y)
 const SHM=$('bmode').value=='sh';$('wb').style.display=SHM?'none':'';$('wdl').style.display=SHM?'':'none';
 if(SHM)N.forEach((n,i)=>{const s0=NUM('sh_'+n)||0,dl=DL(n),ns=s0+dl;$('dm'+i).textContent=s0||dl?`調整後 ${Math.max(0,ns).toLocaleString('en-US')} ${UN(i)} ≈ ${fm(BV[i])}（${(w[i]*100).toFixed(1)}%）`+(ns<0?'｜賣出超過持有':''):''});
 else N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i],sh=Math.round(d*1e4/PX[i]);$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}，約 ${sh>=0?'+':''}${sh.toLocaleString('en-US')} ${UN(i)}）`+(tot>0&&Math.abs(a[i]/tot-w[i])<=Math.min(.05,.25*w[i])+1e-12&&(a[i]>0||w[i]>0)?'｜未達 5/25 門檻':'')});
-if(!SHM)$('sb').textContent+='｜總額 '+fm(tot);drawAlloc(a,tot,w);
+if(!SHM)$('sb').textContent+='｜總額 '+fm(tot);
+{const c={現金:0,黃金:0,債券:0,股票:0};N.forEach((n,i)=>{c[CLS(n)]+=w[i]||0});$('bcls').innerHTML=`現金：黃金：債券：股票 ＝ <b>${['現金','黃金','債券','股票'].map(k=>(c[k]*100).toFixed(0)).join('：')}</b>`}
+drawAlloc(a,tot,w);
 $('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winz').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
 const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，到 ${(Math.round(+$('age').value)||38)+Y} 歲時約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
 let CURTAB='F';function tab(k){CURTAB=k;if(k=='Q'){qLoad();clearInterval(QT);QT=setInterval(qLoad,300000)}else clearInterval(QT);
