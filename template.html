@@ -95,7 +95,9 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 </details>
 <div class="card">
 <div class="grid">
-<div class="pa"><h2>A 調整前：目前持有（股數）</h2><div id="wa"></div><div class="sum" id="sa"></div></div>
+<div class="pa"><h2>A 調整前：目前持有（股數）</h2><div id="wa"></div><div class="sum" id="sa"></div>
+<div style="margin-top:8px"><button id="txbtn" class="btn2">產生文字</button> <button id="txcp" class="btn2" style="display:none">複製</button>
+<textarea id="txout" readonly style="display:none;width:100%;margin-top:6px;font:13px/1.5 ui-monospace,Menlo,monospace;height:200px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px"></textarea></div></div>
 <div class="pb"><div class="row" style="margin:0 0 10px"><h2 style="margin:0">B 調整後</h2><select id="bmode" style="font-size:13px;padding:5px 6px"><option value="pct">目標比例（%）</option><option value="sh">股數加減</option></select></div><div id="wb"></div><div id="wdl" style="display:none"></div><div class="sum" id="sb"></div><div id="bcls" style="margin-top:4px;font-size:13px"></div></div>
 </div>
 <div class="note">A 以最新收盤價與匯率換算成台幣；B 選「目標比例」時用 A 的總淨值重新配置，括號內是要買賣的金額與股數；選「股數加減」時每檔選買或賣，再填股數，模擬比較只取調整後的比例、總額沿用 A，實際要投入或取回的現金顯示在 B 下方。輸入只存在你這支手機的瀏覽器裡。</div>
@@ -503,6 +505,18 @@ h+=`<div class="note" style="margin-top:10pt">本快照由「投資組合調整�
 $('print').innerHTML=h;const old=document.title;document.title=`投資組合快照-${ts.slice(0,10)}`;
 const done=()=>{document.title=old;$('print').innerHTML='';window.removeEventListener('afterprint',done)};window.addEventListener('afterprint',done);
 setTimeout(()=>window.print(),100)}
+// ---------- 產生可複製的持股文字 ----------
+const TXD0='2026-10-25';  // D1 的日期；今天是第幾天＝今天 − 這天 + 1
+async function genText(){$('txbtn').textContent='取得報價中…';try{await qLoad()}catch(e){}$('txbtn').textContent='產生文字';
+const r=RAW[RAW.length-1],live=QQ&&QQ['TWD=X']&&!QQ['TWD=X'].error&&QQ['TWD=X'].price,fx=live?QQ['TWD=X'].price:r[N.length+1];
+const v=N.map((n,i)=>{const sh=NUM('sh_'+n);if(!sh)return 0;const q=live&&!ISC(n)&&QQ[ysym(n)],px=ISC(n)?1:(q&&!q.error&&q.price!=null?q.price:r[i+1]);return sh*px*(UD(i)?fx:1)});
+const tot=v.reduce((a,b)=>a+b,0),c={現金:0,黃金:0,債券:0,股票:0};N.forEach((n,i)=>{c[CLS(n)]+=v[i]});const tw=N.reduce((s,n,i)=>s+(TWS.has(n)?v[i]:0),0);
+const t=new Date(),p=x=>String(x).padStart(2,'0'),day=Math.round((new Date(t.getFullYear(),t.getMonth(),t.getDate())-new Date(TXD0+'T00:00'))/864e5)+1;
+const pc=k=>tot?(c[k]/tot*100).toFixed(1):'0.0',ks=c['現金']>0?['現金','黃金','債券','股票']:['黃金','債券','股票'];
+const L=[`【D${day}】${t.getFullYear()}.${p(t.getMonth()+1)}.${p(t.getDate())} 匯 ${fx.toFixed(2)} 總 ${Math.round(tot/1e4)}`,`${ks.map(pc).join(' : ')} ( ${c['股票']?(tw/c['股票']*100).toFixed(1):'0.0'}%)`];
+N.forEach((n,i)=>{const sh=NUM('sh_'+n);if(sh)L.push(`${ISC(n)?SN(i):n} x ${sh.toLocaleString('en-US')}`)});
+$('txout').value=L.join('\n');$('txout').style.display='';$('txcp').style.display=''}
+async function copyText(){const b=$('txcp');try{await navigator.clipboard.writeText($('txout').value)}catch(e){$('txout').select();try{document.execCommand('copy')}catch(x){}}b.textContent='已複製';setTimeout(()=>b.textContent='複製',1500)}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.type=='checkbox'?(e.checked?'1':'0'):e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 const OLD=['GLDM','GOVT','VT','0050','00646','VXUS'];  // 舊版以位置編號存的欄位，轉成以代號存
 function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const m=k.match(/^(sh|wb)(\d)$/),id=m?m[1]+'_'+OLD[+m[2]]:k;if(m&&(id in o))continue;const e=$(id);if(e){if(e.type=='checkbox')e.checked=o[k]=='1';else e.value=o[k]}}}catch(e){}}
@@ -519,7 +533,7 @@ restore();
 document.querySelectorAll('input.numc').forEach(e=>{fmtNum(e);e.addEventListener('input',()=>fmtNum(e))});
 document.querySelectorAll('input[type=number],input[type=range],input.numc,select').forEach(e=>!e.id.startsWith('dv')&&e.id!='qcol'&&e.addEventListener('input',()=>{showB();markSet();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
-$('tbD').onclick=()=>tab('D');$('pdfbtn').onclick=exportPDF;$('hidez').addEventListener('change',()=>{save();markSet();showB();if(CURTAB=='Q')qLoad()});$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
+$('tbD').onclick=()=>tab('D');$('pdfbtn').onclick=exportPDF;$('txbtn').onclick=genText;$('txcp').onclick=copyText;$('hidez').addEventListener('change',()=>{save();markSet();showB();if(CURTAB=='Q')qLoad()});$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
 const qc=()=>{try{document.body.classList.toggle('gup',$('qcol').value=='g')}catch(e){}};$('qcol').onchange=()=>{qc();save();markSet()};qc();$('tbF').onclick=()=>tab('F');$('tbH').onclick=()=>tab('H');
 {const t=new Date();$('dvd').value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`}
 $('dvt').innerHTML='<option value="">其他</option>'+[...N].filter(t=>!ISC(t)).sort(TKS).map(t=>`<option${t=='GOVT'?' selected':''}>${t}</option>`).join('');
