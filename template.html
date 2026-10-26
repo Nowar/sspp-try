@@ -98,19 +98,20 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="pa"><h2>A 調整前：目前持有（股數）</h2><div id="wa"></div><div class="sum" id="sa"></div>
 <div style="margin-top:8px"><button id="txbtn" class="btn2">產生文字</button> <button id="txcp" class="btn2" style="display:none">複製</button>
 <textarea id="txout" readonly style="display:none;width:100%;margin-top:6px;font:13px/1.5 ui-monospace,Menlo,monospace;height:200px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px"></textarea></div></div>
-<div class="pb"><div class="row" style="margin:0 0 10px"><h2 style="margin:0">B 調整後</h2><select id="bmode" style="font-size:13px;padding:5px 6px"><option value="pct">目標比例（%）</option><option value="sh">股數加減</option></select></div><div id="wb"></div><div id="wdl" style="display:none"></div><div class="sum" id="sb"></div><div id="bcls" style="margin-top:4px;font-size:13px"></div></div>
-</div>
-<div class="note">A 以最新收盤價與匯率換算成台幣；B 選「目標比例」時用 A 的總淨值重新配置，括號內是要買賣的金額與股數；選「股數加減」時每檔選買或賣，再填股數，模擬比較只取調整後的比例、總額沿用 A，實際要投入或取回的現金顯示在 B 下方。輸入只存在你這支手機的瀏覽器裡。</div>
+<details class="pb" id="bdet"><summary style="font-weight:600;font-size:16px">B 調整後 <span class="sum" id="bsumm" style="font-weight:400"></span></summary><div class="row" style="margin:8px 0 10px"><span class="sum">輸入方式</span><select id="bmode" style="font-size:13px;padding:5px 6px"><option value="pct">目標比例（%）</option><option value="sh">股數加減</option></select></div><div id="wb"></div><div id="wdl" style="display:none"></div><div class="sum" id="sb"></div><div id="bcls" style="margin-top:4px;font-size:13px"></div><div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:8px">
 <div class="row"><label>今年年紀</label><input type="number" id="age" value="38" min="0" max="120" step="1" inputmode="numeric"></div>
 <div class="row"><label>歷史試算方向<div class="sum">反推：以今天淨值為終點，算當年需投入多少</div></label><select id="dir"><option value="fwd" selected>正推（今天淨值當起點）</option><option value="rev">反推（今天淨值當終點）</option></select></div>
 <div class="row"><label>再平衡方式</label><select id="rb"><option value="1">每月再平衡</option><option value="3">每季再平衡</option><option value="6">每半年再平衡</option><option value="12" selected>每年再平衡</option><option value="0">不再平衡（買進持有）</option></select></div>
+<div class="note">A 以最新收盤價與匯率換算成台幣；B 選「目標比例」時用 A 的總淨值重新配置，括號內是要買賣的金額與股數；選「股數加減」時每檔選買或賣，再填股數，模擬比較只取調整後的比例、總額沿用 A，實際要投入或取回的現金顯示在 B 下方。輸入只存在你這支手機的瀏覽器裡。</div>
+</div></details>
+</div>
 </div>
 
-<div class="card"><h2>配置一覽</h2>
-<div class="sum">各標的金額（萬台幣，A 調整前／B 調整後；段內數字為萬，B 用 A 的總淨值重新配置，所以兩條總長相同）</div><div class="ch" style="height:190px"><canvas id="cv1"></canvas></div>
+<details class="card" id="adet"><summary style="font-weight:600;font-size:16px">配置一覽</summary>
+<div class="sum" style="margin-top:8px">各標的金額（萬台幣，A 調整前／B 調整後；段內數字為萬，B 用 A 的總淨值重新配置，所以兩條總長相同）</div><div class="ch" style="height:190px"><canvas id="cv1"></canvas></div>
 <div class="sum" style="margin-top:12px">這次調整要買賣的金額（萬台幣，右買左賣）</div><div class="sum" id="cv2r"></div><div class="ch" id="cv2w" style="height:260px"><canvas id="cv2"></canvas></div><div class="note" id="cv2n"></div>
 <div style="margin-top:12px"><div class="sum">資產類別</div><div class="ch" style="height:220px"><canvas id="cv3"></canvas></div></div>
-<div class="note">圓環：外圈是 B 調整後，內圈是 A 調整前。單一市場股票指 0050、2454（集中在台灣）。</div></div>
+<div class="note">圓環：外圈是 B 調整後，內圈是 A 調整前。單一市場股票指 0050、2454（集中在台灣）。</div></details>
 <div class="tabs"><button id="tbD">股利</button><button id="tbQ">即時</button><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
 <section id="tabD" style="display:none">
 <div class="card"><h2>新增股利</h2>
@@ -140,13 +141,13 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div>寬限期（年）<input type="number" id="ln1g" min="0" step="1" inputmode="numeric" value="0"></div></div></div><div class="lng" style="margin-top:6px"><div>提前還本後<select id="ln1m" style="width:100%;margin-top:2px"><option value="pay">月付降低（期數不變）</option><option value="term">期數縮短（月付不變）</option></select></div></div>
 <div class="sum" style="margin-top:8px">提前還本（可填未來的規劃）</div><div id="ln1ppl"></div>
 <div class="dvf" style="grid-template-columns:1.3fr 1fr auto;margin-top:4px"><input type="date" id="ln1ppd"><input type="number" id="ln1ppa" min="0" step="any" inputmode="decimal" placeholder="金額（萬）"><button class="btn2" id="ln1ppb">加入</button></div>
-<input type="hidden" id="ln1pp" value="[]"><div class="note" id="ln1s" style="white-space:pre-line;color:var(--tx)"></div></div><div style="margin-top:10px"><b>房貸</b><div class="lng">
+<input type="hidden" id="ln1pp" value="[]"><div class="note" id="ln1s" style="white-space:pre-line;color:var(--tx)"></div><div style="margin-top:10px"><b>房貸</b><div class="lng">
 <div>本金（萬）<input type="number" id="ln2p" min="0" step="any" inputmode="decimal"></div><div>起始日<input type="date" id="ln2d"></div>
 <div>年期（年）<input type="number" id="ln2y" min="0" step="1" inputmode="numeric"></div><div>年利率（%）<input type="number" id="ln2r" min="0" step="0.01" inputmode="decimal"></div>
 <div>寬限期（年）<input type="number" id="ln2g" min="0" step="1" inputmode="numeric" value="0"></div></div></div><div class="lng" style="margin-top:6px"><div>提前還本後<select id="ln2m" style="width:100%;margin-top:2px"><option value="pay">月付降低（期數不變）</option><option value="term">期數縮短（月付不變）</option></select></div></div>
 <div class="sum" style="margin-top:8px">提前還本（可填未來的規劃）</div><div id="ln2ppl"></div>
 <div class="dvf" style="grid-template-columns:1.3fr 1fr auto;margin-top:4px"><input type="date" id="ln2ppd"><input type="number" id="ln2ppa" min="0" step="any" inputmode="decimal" placeholder="金額（萬）"><button class="btn2" id="ln2ppb">加入</button></div>
-<input type="hidden" id="ln2pp" value="[]"><div class="note" id="ln2s" style="white-space:pre-line;color:var(--tx)"></div></div>
+<input type="hidden" id="ln2pp" value="[]"><div class="note" id="ln2s" style="white-space:pre-line;color:var(--tx)"></div>
 <div class="note" id="lnsum" style="margin-top:10px;white-space:pre-line"></div></details>
 </section>
 <section id="tabF">
@@ -318,7 +319,7 @@ const SHM=$('bmode').value=='sh';$('wb').style.display=SHM?'none':'';$('wdl').st
 if(SHM)N.forEach((n,i)=>{const s0=NUM('sh_'+n)||0,dl=DL(n),ns=s0+dl;$('dm'+i).textContent=s0||dl?`調整後 ${Math.max(0,ns).toLocaleString('en-US')} ${UN(i)} ≈ ${fm(BV[i])}（${(w[i]*100).toFixed(1)}%）`+(ns<0?'｜賣出超過持有':''):''});
 else N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i],sh=Math.round(d*1e4/PX[i]);$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}，約 ${sh>=0?'+':''}${sh.toLocaleString('en-US')} ${UN(i)}）`+(tot>0&&Math.abs(a[i]/tot-w[i])<=Math.min(.05,.25*w[i])+1e-12&&(a[i]>0||w[i]>0)?'｜未達 5/25 門檻':'')});
 if(!SHM)$('sb').textContent+='｜總額 '+fm(tot);
-{const c={現金:0,黃金:0,債券:0,股票:0};N.forEach((n,i)=>{c[CLS(n)]+=w[i]||0});$('bcls').innerHTML=`現金：黃金：債券：股票 ＝ <b>${['現金','黃金','債券','股票'].map(k=>(c[k]*100).toFixed(1)).join('：')}</b><br>單一市場曝險佔股票 ＝ <b>${(()=>{const t=N.reduce((s,n,i)=>s+(TWS.has(n)?w[i]||0:0),0);return c['股票']>1e-12?(t/c['股票']*100).toFixed(1):'0.0'})()}%</b>`}
+{const c={現金:0,黃金:0,債券:0,股票:0};N.forEach((n,i)=>{c[CLS(n)]+=w[i]||0});$('bcls').innerHTML=`現金：黃金：債券：股票 ＝ <b>${['現金','黃金','債券','股票'].map(k=>(c[k]*100).toFixed(1)).join('：')}</b><br>單一市場曝險佔股票 ＝ <b>${(()=>{const t=N.reduce((s,n,i)=>s+(TWS.has(n)?w[i]||0:0),0);return c['股票']>1e-12?(t/c['股票']*100).toFixed(1):'0.0'})()}%</b>`;$('bsumm').textContent='（'+['現金','黃金','債券','股票'].map(k=>(c[k]*100).toFixed(1)).join(' : ')+'）'}
 drawAlloc(a,tot,w);
 $('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winz').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
 const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，到 ${(Math.round(+$('age').value)||38)+Y} 歲時約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
@@ -533,7 +534,8 @@ restore();
 document.querySelectorAll('input.numc').forEach(e=>{fmtNum(e);e.addEventListener('input',()=>fmtNum(e))});
 document.querySelectorAll('input[type=number],input[type=range],input.numc,select').forEach(e=>!e.id.startsWith('dv')&&e.id!='qcol'&&e.addEventListener('input',()=>{showB();markSet();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
-$('tbD').onclick=()=>tab('D');$('pdfbtn').onclick=exportPDF;$('txbtn').onclick=genText;$('txcp').onclick=copyText;$('hidez').addEventListener('change',()=>{save();markSet();showB();if(CURTAB=='Q')qLoad()});$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
+$('tbD').onclick=()=>tab('D');$('pdfbtn').onclick=exportPDF;try{$('bdet').open=localStorage.getItem('pc4bopen')=='1'}catch(e){}$('bdet').addEventListener('toggle',()=>{try{localStorage.setItem('pc4bopen',$('bdet').open?'1':'0')}catch(e){}});
+try{$('adet').open=localStorage.getItem('pc4aopen')!='0'}catch(e){}$('adet').addEventListener('toggle',()=>{try{localStorage.setItem('pc4aopen',$('adet').open?'1':'0')}catch(e){}if($('adet').open)showB()});$('txbtn').onclick=genText;$('txcp').onclick=copyText;$('hidez').addEventListener('change',()=>{save();markSet();showB();if(CURTAB=='Q')qLoad()});$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
 const qc=()=>{try{document.body.classList.toggle('gup',$('qcol').value=='g')}catch(e){}};$('qcol').onchange=()=>{qc();save();markSet()};qc();$('tbF').onclick=()=>tab('F');$('tbH').onclick=()=>tab('H');
 {const t=new Date();$('dvd').value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`}
 $('dvt').innerHTML='<option value="">其他</option>'+[...N].filter(t=>!ISC(t)).sort(TKS).map(t=>`<option${t=='GOVT'?' selected':''}>${t}</option>`).join('');
