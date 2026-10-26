@@ -513,7 +513,7 @@ const v=N.map((n,i)=>{const sh=NUM('sh_'+n);if(!sh)return 0;const q=live&&!ISC(n
 const tot=v.reduce((a,b)=>a+b,0),c={現金:0,黃金:0,債券:0,股票:0};N.forEach((n,i)=>{c[CLS(n)]+=v[i]});const tw=N.reduce((s,n,i)=>s+(TWS.has(n)?v[i]:0),0);
 const t=new Date(),p=x=>String(x).padStart(2,'0'),day=Math.round((new Date(t.getFullYear(),t.getMonth(),t.getDate())-new Date(TXD0+'T00:00'))/864e5)+1;
 const pc=k=>tot?(c[k]/tot*100).toFixed(1):'0.0',ks=c['現金']>0?['現金','黃金','債券','股票']:['黃金','債券','股票'];
-const L=[`【D${day}】${t.getFullYear()}.${p(t.getMonth()+1)}.${p(t.getDate())} 匯 ${fx.toFixed(2)} 總 ${Math.round(tot/1e4)}`,`${ks.map(pc).join(' : ')} ( ${c['股票']?(tw/c['股票']*100).toFixed(1):'0.0'}%)`];
+const L=[`【D${day}】${t.getFullYear()}.${p(t.getMonth()+1)}.${p(t.getDate())} 匯 ${fx.toFixed(2)} 總 ${Math.round(tot/1e4)}`,`${ks.map(pc).join(' : ')} (台 ${c['股票']?(tw/c['股票']*100).toFixed(1):'0.0'}%)`];
 N.forEach((n,i)=>{const sh=NUM('sh_'+n);if(sh)L.push(`${ISC(n)?SN(i):n} x ${sh.toLocaleString('en-US')}`)});
 $('txout').value=L.join('\n');$('txout').style.display='';$('txcp').style.display=''}
 async function copyText(){const b=$('txcp');try{await navigator.clipboard.writeText($('txout').value)}catch(e){$('txout').select();try{document.execCommand('copy')}catch(x){}}b.textContent='已複製';setTimeout(()=>b.textContent='複製',1500)}
