@@ -404,15 +404,18 @@ try{const k=await crypto.subtle.importKey('raw',b64d(raw),'AES-GCM',true,['encry
 const CLS=t=>ISC(t)?'現金':/^(GLD|GLDM|IAU)$/.test(t)?'黃金':/^(GOVT|IEF|TLT|BND|SHY|VGIT|STIP|TIP|SCHP|VTIP)$/.test(t)?'債券':'股票';
 const SHADE={'股票':['#1f4e8c','#2f6fb5','#4a8fd6','#6aaee8','#93c5ee','#163a66','#3d7cc9','#b3d8f5'],'債券':['#1e8449','#27ae60','#58d68d','#145a32'],'黃金':['#c99a06','#f1c40f','#f7dc6f','#9a7d0a']},CCOL={'股票':'#2f6fb5','債券':'#27ae60','黃金':'#f1c40f'};
 const TWS=new Set(['0050','2454']);  // 單一市場（台灣）集中風險較高，用紫色系
-const COL=i=>{if(N[i]=='CASH')return'#9e9e9e';if(N[i]=='USDCASH')return'#c9c9c9';if(TWS.has(N[i])){const P=['#6c3483','#a569bd','#d2b4de','#4a235a'],k=N.slice(0,i).filter(n=>TWS.has(n)).length;return P[k%P.length]}const c=CLS(N[i]),k=N.slice(0,i).filter(n=>CLS(n)==c&&!TWS.has(n)).length,L=SHADE[c];return L[k%L.length]};
+// 配置圖的排列順序：現金 → 黃金 → 債券 → 全球大盤 → 其他股票 → 單一市場（紫色在最右）
+const ORD=['CASH','USDCASH','GLDM','GOVT','STIP','TIP','VT','009826','00646','VXUS','0050','2454'],OI=i=>{const k=ORD.indexOf(N[i]);return k<0?(TWS.has(N[i])?100:50):k};
+const CMAP={VT:'#1f4e8c','009826':'#1f4e8c','00646':'#4a8fd6',VXUS:'#6aaee8'};  // VT 與 009826 同為全球大盤，用同一個藍
+const COL=i=>{if(CMAP[N[i]])return CMAP[N[i]];if(N[i]=='CASH')return'#9e9e9e';if(N[i]=='USDCASH')return'#c9c9c9';if(TWS.has(N[i])){const P=['#6c3483','#a569bd','#d2b4de','#4a235a'],k=N.slice(0,i).filter(n=>TWS.has(n)).length;return P[k%P.length]}const c=CLS(N[i]),k=N.slice(0,i).filter(n=>CLS(n)==c&&!TWS.has(n)).length,L=SHADE[c];return L[k%L.length]};
 function drawAlloc(a,tot,wb){if(!(tot>0))return;const wa=a.map(x=>x/tot),d=wb.map((w,i)=>w*tot-a[i]),c=base(),P=x=>(x*100).toFixed(1)+'%';
 const small={responsive:true,maintainAspectRatio:false,animation:false};
 const lum=h=>{const n=parseInt(h.slice(1),16);return(0.299*(n>>16)+0.587*(n>>8&255)+0.114*(n&255))/255};
 const seg={id:'seg',afterDatasetsDraw(ch){const x=ch.ctx;x.save();x.font='bold 11px sans-serif';x.textAlign='center';x.textBaseline='middle';
 ch.data.datasets.forEach((d,k)=>ch.getDatasetMeta(k).data.forEach((b,j)=>{if(Math.abs(b.x-b.base)>26&&d.data[j]>0){x.fillStyle=lum(d.backgroundColor)>.6?'#222':'#fff';x.fillText(Math.round(d._lab?d._lab[j]:d.data[j]),(b.x+b.base)/2,b.y)}}));x.restore()}};
-mk('cv1',{type:'bar',data:{labels:['A','B'],datasets:[...N.keys()].sort((x,y)=>ISC(N[y])-ISC(N[x])).map(i=>({label:SN(i),data:[wa[i]*tot,wb[i]*tot],_lab:[wa[i]*tot,BV?BV[i]:wb[i]*tot],backgroundColor:COL(i),borderWidth:0,_i:i})).filter(x=>x.data[0]>1e-9||x.data[1]>1e-9)},
+mk('cv1',{type:'bar',data:{labels:['A','B'],datasets:[...N.keys()].sort((x,y)=>OI(x)-OI(y)).map(i=>({label:SN(i),data:[wa[i]*tot,wb[i]*tot],_lab:[wa[i]*tot,BV?BV[i]:wb[i]*tot],backgroundColor:COL(i),borderWidth:{right:1},borderColor:'rgba(255,255,255,.75)',_i:i})).filter(x=>x.data[0]>1e-9||x.data[1]>1e-9)},
 options:{...small,indexAxis:'y',scales:{x:{stacked:true,max:tot,ticks:{callback:v=>Math.round(v)}},y:{stacked:true,ticks:{autoSkip:false,font:{size:13,weight:'bold'}}}},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:i=>`${i.dataset.label} ${fm(i.dataset._lab?i.dataset._lab[i.dataIndex]:i.parsed.x)}（${((i.dataIndex?wb:wa)[i.dataset._i]*100).toFixed(1)}%）`}}}},plugins:[seg]});
-const SH=$('bmode').value=='sh',dd=SH?N.map((n,i)=>DL(n)*PX[i]/1e4):d,thr=i=>Math.min(.05,.25*wb[i]),need=i=>SH?Math.abs(dd[i])>1e-9:Math.abs(wa[i]-wb[i])>thr(i)+1e-12,ix=N.map((_,i)=>i).filter(need).sort((x,y)=>ISC(N[y])-ISC(N[x])),skip=SH?[]:N.map((_,i)=>i).filter(i=>!need(i)&&(a[i]>1e-9||wb[i]>1e-9));
+const SH=$('bmode').value=='sh',dd=SH?N.map((n,i)=>DL(n)*PX[i]/1e4):d,thr=i=>Math.min(.05,.25*wb[i]),need=i=>SH?Math.abs(dd[i])>1e-9:Math.abs(wa[i]-wb[i])>thr(i)+1e-12,ix=N.map((_,i)=>i).filter(need).sort((x,y)=>OI(x)-OI(y)),skip=SH?[]:N.map((_,i)=>i).filter(i=>!need(i)&&(a[i]>1e-9||wb[i]>1e-9));
 $('cv2r').textContent=SH?'依你填的股數加減':'依 5/25 法則：與目標比例差超過 5 個百分點，或超過目標比例的 25%（取較小者）才列出';
 $('cv2n').textContent=(ix.length?'':SH?'沒有填任何股數加減。':'全部標的都在門檻內，這次不需要再平衡。')+(skip.length?'未達門檻、不需調整：'+skip.map(i=>`${SN(i)}（差 ${(Math.abs(wa[i]-wb[i])*100).toFixed(1)}，門檻 ${(thr(i)*100).toFixed(1)} 個百分點）`).join('、'):'');
 $('cv2w').style.display=ix.length?'':'none';$('cv2w').style.height=(ix.length*28+40)+'px';if(!ix.length&&charts.cv2){charts.cv2.destroy();delete charts.cv2}
