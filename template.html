@@ -148,11 +148,9 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="sum" style="margin-top:8px">提前還本（可填未來的規劃）</div><div id="ln2ppl"></div>
 <div class="dvf" style="grid-template-columns:1.3fr 1fr auto;margin-top:4px"><input type="date" id="ln2ppd"><input type="number" id="ln2ppa" min="0" step="any" inputmode="decimal" placeholder="金額（萬）"><button class="btn2" id="ln2ppb">加入</button></div>
 <input type="hidden" id="ln2pp" value="[]"><div class="note" id="ln2s" style="white-space:pre-line;color:var(--tx)"></div>
-<div style="margin-top:14px"><b>理財型房貸</b><div class="note" style="margin:2px 0 0">只繳利息、沒有年限，借多少算多少；動用餘額計入負債。</div>
-<div class="lng"><div>年利率（%）<input type="number" id="ln3r" min="0" step="0.01" inputmode="decimal"></div><div>額度（萬，可不填）<input type="number" id="ln3c" min="0" step="any" inputmode="decimal"></div></div>
-<div class="sum" style="margin-top:8px">動用／還款紀錄（可填未來的規劃）</div><div id="ln3ppl"></div>
-<div class="dvf" style="grid-template-columns:1.25fr .7fr 1fr auto;margin-top:4px"><input type="date" id="ln3ppd"><select id="ln3pt"><option value="d">增</option><option value="r">減</option></select><input type="number" id="ln3ppa" min="0" step="any" inputmode="decimal" placeholder="金額（萬）"><button class="btn2" id="ln3ppb">加入</button></div>
-<input type="hidden" id="ln3pp" value="[]"><div class="note" id="ln3s" style="white-space:pre-line;color:var(--tx)"></div></div>
+<div style="margin-top:14px"><b>理財型房貸</b><div class="note" style="margin:2px 0 0">只繳利息、沒有年限；照銀行顯示的目前動用餘額填，計入負債。</div>
+<div class="lng"><div>目前動用餘額（萬）<input type="number" id="ln3b" min="0" step="any" inputmode="decimal"></div><div>年利率（%）<input type="number" id="ln3r" min="0" step="0.01" inputmode="decimal"></div><div>額度（萬，可不填）<input type="number" id="ln3c" min="0" step="any" inputmode="decimal"></div></div>
+<div class="note" id="ln3s" style="white-space:pre-line;color:var(--tx)"></div></div>
 <div class="note" id="lnsum" style="margin-top:10px;white-space:pre-line"></div></details>
 </section>
 <section id="tabF">
@@ -461,9 +459,8 @@ if(snap&&snap.next==null){snap.next=pay;snap.grace=k<=g}
 if(b<=0.5){b=0;end=dk;break}}
 if(!snap){take(now);snap={b,k:n,next:0,grace:false}}
 return{b:snap.b,k:snap.k,n,pay:snap.next||0,grace:!!snap.grace,postM,postD:postK?dt(postK):null,end:end||dt(n),ppNow,ppPlan:ppAll-ppNow}}
-// 理財型房貸：動用餘額＝今天以前的增減加總；每月利息＝餘額 × 年利率 ÷ 12
-function rcBal(){const R=(+$('ln3r').value||0)/100,C=+$('ln3c').value||0,L=lnPP(3),now=new Date();if(!L.length)return null;
-let b=0,f=0;L.forEach(x=>{const v=(x.t=='r'?-1:1)*x.a*1e4;if(new Date(x.d+'T00:00')<=now)b+=v;else f+=v});b=Math.max(0,b);return{b,pay:b*R/12,rc:true,cap:C*1e4,plan:f,k:0,n:0,grace:false}}
+// 理財型房貸：直接填銀行顯示的目前動用餘額；每月利息＝餘額 × 年利率 ÷ 12
+function rcBal(){const b=(+$('ln3b').value||0)*1e4,R=(+$('ln3r').value||0)/100,C=+$('ln3c').value||0;if(!b&&!C)return null;return{b,pay:b*R/12,rc:true,cap:C*1e4,plan:0,k:0,n:0,grace:false}}
 const allLoans=()=>{const L=[[1,'信貸'],[2,'房貸']].map(([i,nm])=>({nm,x:loanBal(i)})).filter(o=>o.x),r=rcBal();if(r)L.push({nm:'理財型房貸',x:r});return L};
 function lnRender(i){const L=lnPP(i).map((x,j)=>({...x,j})).sort((a,b)=>a.d<b.d?-1:1);
 $('ln'+i+'ppl').innerHTML=L.map(x=>`<div class="row" style="margin:2px 0"><span class="sum">${x.d}　${x.t?(x.t=='r'?'減 ':'增 '):''}${x.a.toLocaleString('en-US')} 萬</span><button class="del" data-j="${x.j}">刪除</button></div>`).join('');
@@ -567,7 +564,7 @@ if(!(v>0)){bad++;return}const k=d+'|'+t+'|'+v;if(key.has(k)){dup++;return}key.ad
 DVP=0;dvApply(l=>{const h=new Set(l.map(kOf));adds.forEach(r=>{if(!h.has(kOf(r))){l.push(r);h.add(kOf(r))}})},'import dividends',`匯入 ${add} 筆`+(dup?`，略過重複 ${dup} 筆`:'')+(bad?`，無法辨識 ${bad} 行`:''));$('dvf').value=''};
 rd.readAsText(f)};
 dvLoad();DVOK=true;dvRender();vInit();
-[1,2,3].forEach(i=>{$('ln'+i+'ppb').onclick=()=>lnAdd(i);lnRender(i)});
+[1,2].forEach(i=>{$('ln'+i+'ppb').onclick=()=>lnAdd(i);lnRender(i)});
 document.querySelectorAll('[id^=ln]').forEach(e=>{e.addEventListener('input',()=>{qNet();save();markSet()});e.addEventListener('change',()=>{qNet();save();markSet()})});
 document.querySelectorAll('input[type=date]').forEach(e=>e.addEventListener('click',()=>{try{e.showPicker&&e.showPicker()}catch(x){}}));qNet();
 try{tab(localStorage.getItem('pc4tab')||'F')}catch(e){tab('F')}
