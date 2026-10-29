@@ -98,7 +98,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="pa"><h2>A 調整前：目前持有（股數）</h2><div id="wa"></div><div class="sum" id="sa"></div>
 <div style="margin-top:8px"><button id="txbtn" class="btn2">產生文字</button> <button id="txcp" class="btn2" style="display:none">複製</button>
 <textarea id="txout" readonly style="display:none;width:100%;margin-top:6px;font:13px/1.5 ui-monospace,Menlo,monospace;height:200px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px"></textarea></div></div>
-<details class="pb" id="bdet"><summary style="font-weight:600;font-size:16px">B 調整後 <span class="sum" id="bsumm" style="font-weight:400"></span></summary><div class="row" style="margin:8px 0 10px"><span class="sum">輸入方式</span><select id="bmode" style="font-size:13px;padding:5px 6px"><option value="pct">目標比例（%）</option><option value="sh">股數加減</option></select></div><div id="wb"></div><div id="wdl" style="display:none"></div><div class="sum" id="sb"></div><div id="bcls" style="margin-top:4px;font-size:13px"></div><div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:8px">
+<details class="pb" id="bdet"><summary style="font-weight:600;font-size:16px">B 調整後 <span class="sum" id="bsumm" style="font-weight:400"></span><div class="sum" id="dbsum" style="font-weight:400;margin:2px 0 0 18px"></div></summary><div class="row" style="margin:8px 0 10px"><span class="sum">輸入方式</span><select id="bmode" style="font-size:13px;padding:5px 6px"><option value="pct">目標比例（%）</option><option value="sh">股數加減</option></select></div><div id="wb"></div><div id="wdl" style="display:none"></div><div class="sum" id="sb"></div><div id="bcls" style="margin-top:4px;font-size:13px"></div><div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:8px">
 <div class="row"><label>今年年紀</label><input type="number" id="age" value="38" min="0" max="120" step="1" inputmode="numeric"></div>
 <div class="row"><label>歷史試算方向<div class="sum">反推：以今天淨值為終點，算當年需投入多少</div></label><select id="dir"><option value="fwd" selected>正推（今天淨值當起點）</option><option value="rev">反推（今天淨值當終點）</option></select></div>
 <div class="row"><label>再平衡方式</label><select id="rb"><option value="1">每月再平衡</option><option value="3">每季再平衡</option><option value="6">每半年再平衡</option><option value="12" selected>每年再平衡</option><option value="0">不再平衡（買進持有）</option></select></div>
@@ -317,7 +317,7 @@ mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1
 
 // 「顯示未持有」關閉時：A 區隱藏沒持有的標的；B 區只在沒持有且沒填目標／加減時隱藏
 function vis(){const h=!$('hidez').checked;N.forEach(n=>{const held=NUM('sh_'+n)>0,used=(+$('wb_'+n).value||0)>0||NUM('dl_'+n)!==0;$('rsh_'+n).style.display=h&&!held?'none':'';$('rwb_'+n).style.display=$('rdl_'+n).style.display=h&&!held&&!used?'none':''})}
-function showB(){wA();vis();if(DVOK)dvRender();const a=aAmt(),tot=a.reduce((x,y)=>x+y,0),w=wB();
+function showB(){wA();vis();try{qNet();[1,2].forEach(lnRender)}catch(e){}if(DVOK)dvRender();const a=aAmt(),tot=a.reduce((x,y)=>x+y,0),w=wB();
 const SHM=$('bmode').value=='sh';$('wb').style.display=SHM?'none':'';$('wdl').style.display=SHM?'':'none';
 if(SHM)N.forEach((n,i)=>{const s0=NUM('sh_'+n)||0,dl=DL(n),ns=s0+dl;$('dm'+i).textContent=s0||dl?`調整後 ${Math.max(0,ns).toLocaleString('en-US')} ${UN(i)} ≈ ${fm(BV[i])}（${(w[i]*100).toFixed(1)}%）`+(ns<0?'｜賣出超過持有':''):''});
 else N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i],sh=Math.round(d*1e4/PX[i]);$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}，約 ${sh>=0?'+':''}${sh.toLocaleString('en-US')} ${UN(i)}）`+(tot>0&&Math.abs(a[i]/tot-w[i])<=Math.min(.05,.25*w[i])+1e-12&&(a[i]>0||w[i]>0)?'｜未達 5/25 門檻':'')});
@@ -458,9 +458,9 @@ let pay;if(k<=g)pay=b*r;else{if(M==null)M=am(b,n-k+1);if(postM==null){postM=M;po
 if(snap&&snap.next==null){snap.next=pay;snap.grace=k<=g}
 if(b<=0.5){b=0;end=dk;break}}
 if(!snap){take(now);snap={b,k:n,next:0,grace:false}}
-return{b:snap.b,k:snap.k,n,pay:snap.next||0,grace:!!snap.grace,postM,postD:postK?dt(postK):null,end:end||dt(n),ppNow,ppPlan:ppAll-ppNow}}
+return{b:snap.b,k:snap.k,n,pay:snap.next||0,grace:!!snap.grace,postM,postD:postK?dt(postK):null,end:end||dt(n),ppNow,ppPlan:ppAll-ppNow,it:snap.b*r}}
 // 理財型房貸：直接填銀行顯示的目前動用餘額；每月利息＝餘額 × 年利率 ÷ 12
-function rcBal(){const b=(+$('ln3b').value||0)*1e4,R=(+$('ln3r').value||0)/100,C=+$('ln3c').value||0;if(!b&&!C)return null;return{b,pay:b*R/12,rc:true,cap:C*1e4,plan:0,k:0,n:0,grace:false}}
+function rcBal(){const b=(+$('ln3b').value||0)*1e4,R=(+$('ln3r').value||0)/100,C=+$('ln3c').value||0;if(!b&&!C)return null;return{b,pay:b*R/12,it:b*R/12,rc:true,cap:C*1e4,plan:0,k:0,n:0,grace:false}}
 const allLoans=()=>{const L=[[1,'信貸'],[2,'房貸']].map(([i,nm])=>({nm,x:loanBal(i)})).filter(o=>o.x),r=rcBal();if(r)L.push({nm:'理財型房貸',x:r});return L};
 function lnRender(i){const L=lnPP(i).map((x,j)=>({...x,j})).sort((a,b)=>a.d<b.d?-1:1);
 $('ln'+i+'ppl').innerHTML=L.map(x=>`<div class="row" style="margin:2px 0"><span class="sum">${x.d}　${x.t?(x.t=='r'?'減 ':'增 '):''}${x.a.toLocaleString('en-US')} 萬</span><button class="del" data-j="${x.j}">刪除</button></div>`).join('');
@@ -473,7 +473,9 @@ const ym=x=>x?`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`:'�
 x.grace?`寬限期中，每月只繳利息約 ${n0(x.pay)} 元；${ym(x.postD)} 起月付約 ${n0(x.postM||0)} 元`:`目前月付約 ${n0(x.pay)} 元`,
 `預計 ${ym(x.end)} 還清`+(x.ppNow?`；已提前還本 ${fm(x.ppNow/1e4)}`:'')+(x.ppPlan?`；另有規劃 ${fm(x.ppPlan/1e4)}`:'')].join('\n'):''});
 {const r=rcBal();$('ln3s').textContent=r?[`動用餘額 ${fm(r.b/1e4)}`+(r.cap?`（額度 ${fm(r.cap/1e4)}，尚可動用 ${fm(Math.max(0,r.cap-r.b)/1e4)}）`:''),`每月利息約 ${n0(r.pay)} 元`+(r.plan?`；另有規劃${r.plan>0?'動用':'還款'} ${fm(Math.abs(r.plan)/1e4)}`:'')].join('\n'):''}
-$('lnsum').textContent=L.length?`負債合計 ${fm(debt)}，每月總月付約 ${n0(L.reduce((s,o)=>s+o.x.pay,0))} 元`:'尚未填寫負債';
+const mp=L.reduce((s,o)=>s+o.x.pay,0),mi=L.reduce((s,o)=>s+(o.x.it||0),0);
+$('lnsum').textContent=L.length?`負債合計 ${fm(debt)}`:'尚未填寫負債';
+$('dbsum').textContent=L.length?`每月貸款支出約 ${n0(mp)} 元，其中利息約 ${n0(mi)} 元（${L.map(o=>o.nm+' '+n0(o.x.pay)).join('、')}）`:'';
 $('qnet').innerHTML=QTV!=null&&L.length?`淨值 ≈ <b>${fm(QTV-debt)}</b><span class="sum">（總市值 − 負債 ${fm(debt)}）</span>`:''}
 async function qLoad(){$('qmsg').textContent='更新中…';
 try{let L=N.map((_,i)=>i).filter(i=>!ISC(N[i])).sort((a,b)=>TKS(N[a],N[b]));if(!$('hidez').checked&&L.some(i=>NUM('sh_'+N[i])>0))L=L.filter(i=>NUM('sh_'+N[i])>0);const r=await fetch(QURL+'?s='+encodeURIComponent([...L.map(i=>ysym(N[i])),'TWD=X'].join(',')),{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
@@ -524,7 +526,7 @@ const v=N.map((n,i)=>{const sh=NUM('sh_'+n);if(!sh)return 0;const q=live&&!ISC(n
 const tot=v.reduce((a,b)=>a+b,0),c={現金:0,黃金:0,債券:0,股票:0};N.forEach((n,i)=>{c[CLS(n)]+=v[i]});const tw=N.reduce((s,n,i)=>s+(TWS.has(n)?v[i]:0),0);
 const t=new Date(),p=x=>String(x).padStart(2,'0'),day=Math.round((new Date(t.getFullYear(),t.getMonth(),t.getDate())-new Date(TXD0+'T00:00'))/864e5)+1;
 const pc=k=>tot?(c[k]/tot*100).toFixed(1):'0.0',ks=c['現金']>0?['現金','黃金','債券','股票']:['黃金','債券','股票'];
-const L=[`【D${day}】${t.getFullYear()}.${p(t.getMonth()+1)}.${p(t.getDate())} 匯 ${fx.toFixed(2)} 總 ${Math.round(tot/1e4)}`,`${ks.map(pc).join(' : ')} (台 ${c['股票']?(tw/c['股票']*100).toFixed(1):'0.0'}%)`];
+const debt=allLoans().reduce((s,o)=>s+o.x.b,0),L=[`【D${day}】${t.getFullYear()}.${p(t.getMonth()+1)}.${p(t.getDate())} 匯 ${fx.toFixed(2)}`,`總 ${Math.round(tot/1e4)} 淨 ${Math.round((tot-debt)/1e4)}`,`${ks.map(pc).join(' : ')} (台 ${c['股票']?(tw/c['股票']*100).toFixed(1):'0.0'}%)`];
 N.forEach((n,i)=>{const sh=NUM('sh_'+n);if(sh)L.push(`${ISC(n)?SN(i):n} x ${sh.toLocaleString('en-US')}`)});
 $('txout').value=L.join('\n');$('txout').style.display='';$('txcp').style.display=''}
 async function copyText(){const b=$('txcp');try{await navigator.clipboard.writeText($('txout').value)}catch(e){$('txout').select();try{document.execCommand('copy')}catch(x){}}b.textContent='已複製';setTimeout(()=>b.textContent='複製',1500)}
