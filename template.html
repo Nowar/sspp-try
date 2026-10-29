@@ -148,6 +148,11 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="sum" style="margin-top:8px">提前還本（可填未來的規劃）</div><div id="ln2ppl"></div>
 <div class="dvf" style="grid-template-columns:1.3fr 1fr auto;margin-top:4px"><input type="date" id="ln2ppd"><input type="number" id="ln2ppa" min="0" step="any" inputmode="decimal" placeholder="金額（萬）"><button class="btn2" id="ln2ppb">加入</button></div>
 <input type="hidden" id="ln2pp" value="[]"><div class="note" id="ln2s" style="white-space:pre-line;color:var(--tx)"></div>
+<div style="margin-top:14px"><b>理財型房貸</b><div class="note" style="margin:2px 0 0">只繳利息、沒有年限，借多少算多少；動用餘額計入負債。</div>
+<div class="lng"><div>年利率（%）<input type="number" id="ln3r" min="0" step="0.01" inputmode="decimal"></div><div>額度（萬，可不填）<input type="number" id="ln3c" min="0" step="any" inputmode="decimal"></div></div>
+<div class="sum" style="margin-top:8px">動用／還款紀錄（可填未來的規劃）</div><div id="ln3ppl"></div>
+<div class="dvf" style="grid-template-columns:1.25fr .7fr 1fr auto;margin-top:4px"><input type="date" id="ln3ppd"><select id="ln3pt"><option value="d">增</option><option value="r">減</option></select><input type="number" id="ln3ppa" min="0" step="any" inputmode="decimal" placeholder="金額（萬）"><button class="btn2" id="ln3ppb">加入</button></div>
+<input type="hidden" id="ln3pp" value="[]"><div class="note" id="ln3s" style="white-space:pre-line;color:var(--tx)"></div></div>
 <div class="note" id="lnsum" style="margin-top:10px;white-space:pre-line"></div></details>
 </section>
 <section id="tabF">
@@ -456,16 +461,21 @@ if(snap&&snap.next==null){snap.next=pay;snap.grace=k<=g}
 if(b<=0.5){b=0;end=dk;break}}
 if(!snap){take(now);snap={b,k:n,next:0,grace:false}}
 return{b:snap.b,k:snap.k,n,pay:snap.next||0,grace:!!snap.grace,postM,postD:postK?dt(postK):null,end:end||dt(n),ppNow,ppPlan:ppAll-ppNow}}
+// 理財型房貸：動用餘額＝今天以前的增減加總；每月利息＝餘額 × 年利率 ÷ 12
+function rcBal(){const R=(+$('ln3r').value||0)/100,C=+$('ln3c').value||0,L=lnPP(3),now=new Date();if(!L.length)return null;
+let b=0,f=0;L.forEach(x=>{const v=(x.t=='r'?-1:1)*x.a*1e4;if(new Date(x.d+'T00:00')<=now)b+=v;else f+=v});b=Math.max(0,b);return{b,pay:b*R/12,rc:true,cap:C*1e4,plan:f,k:0,n:0,grace:false}}
+const allLoans=()=>{const L=[[1,'信貸'],[2,'房貸']].map(([i,nm])=>({nm,x:loanBal(i)})).filter(o=>o.x),r=rcBal();if(r)L.push({nm:'理財型房貸',x:r});return L};
 function lnRender(i){const L=lnPP(i).map((x,j)=>({...x,j})).sort((a,b)=>a.d<b.d?-1:1);
-$('ln'+i+'ppl').innerHTML=L.map(x=>`<div class="row" style="margin:2px 0"><span class="sum">${x.d}　${x.a.toLocaleString('en-US')} 萬</span><button class="del" data-j="${x.j}">刪除</button></div>`).join('');
+$('ln'+i+'ppl').innerHTML=L.map(x=>`<div class="row" style="margin:2px 0"><span class="sum">${x.d}　${x.t?(x.t=='r'?'減 ':'增 '):''}${x.a.toLocaleString('en-US')} 萬</span><button class="del" data-j="${x.j}">刪除</button></div>`).join('');
 $('ln'+i+'ppl').querySelectorAll('.del').forEach(bt=>bt.onclick=()=>{if(bt.dataset.c){const l=lnPP(i);l.splice(+bt.dataset.j,1);$('ln'+i+'pp').value=JSON.stringify(l);save();markSet();lnRender(i);qNet();return}
 bt.dataset.c='1';bt.textContent='確認刪除';bt.classList.add('on');setTimeout(()=>{if(bt.isConnected&&bt.dataset.c){delete bt.dataset.c;bt.textContent='刪除';bt.classList.remove('on')}},3000)})}
-function lnAdd(i){const d=$('ln'+i+'ppd').value,a=+$('ln'+i+'ppa').value;if(!d||!(a>0))return;const l=lnPP(i);l.push({d,a});$('ln'+i+'pp').value=JSON.stringify(l);$('ln'+i+'ppa').value='';save();markSet();lnRender(i);qNet()}
-function qNet(){const L=[[1,'信貸'],[2,'房貸']].map(([i,nm])=>({nm,x:loanBal(i)})).filter(o=>o.x),debt=L.reduce((s,o)=>s+o.x.b,0)/1e4;
+function lnAdd(i){const d=$('ln'+i+'ppd').value,a=+$('ln'+i+'ppa').value;if(!d||!(a>0))return;const l=lnPP(i),tp=$('ln'+i+'pt');l.push(tp?{d,a,t:tp.value}:{d,a});$('ln'+i+'pp').value=JSON.stringify(l);$('ln'+i+'ppa').value='';save();markSet();lnRender(i);qNet()}
+function qNet(){const L=allLoans(),debt=L.reduce((s,o)=>s+o.x.b,0)/1e4;
 const ym=x=>x?`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`:'—',n0=x=>Math.round(x).toLocaleString('en-US');
 [[1,'信貸'],[2,'房貸']].forEach(([i])=>{const x=loanBal(i);$('ln'+i+'s').textContent=x?[`目前第 ${x.k}/${x.n} 期，本金餘額 ${fm(x.b/1e4)}`,
 x.grace?`寬限期中，每月只繳利息約 ${n0(x.pay)} 元；${ym(x.postD)} 起月付約 ${n0(x.postM||0)} 元`:`目前月付約 ${n0(x.pay)} 元`,
 `預計 ${ym(x.end)} 還清`+(x.ppNow?`；已提前還本 ${fm(x.ppNow/1e4)}`:'')+(x.ppPlan?`；另有規劃 ${fm(x.ppPlan/1e4)}`:'')].join('\n'):''});
+{const r=rcBal();$('ln3s').textContent=r?[`動用餘額 ${fm(r.b/1e4)}`+(r.cap?`（額度 ${fm(r.cap/1e4)}，尚可動用 ${fm(Math.max(0,r.cap-r.b)/1e4)}）`:''),`每月利息約 ${n0(r.pay)} 元`+(r.plan?`；另有規劃${r.plan>0?'動用':'還款'} ${fm(Math.abs(r.plan)/1e4)}`:'')].join('\n'):''}
 $('lnsum').textContent=L.length?`負債合計 ${fm(debt)}，每月總月付約 ${n0(L.reduce((s,o)=>s+o.x.pay,0))} 元`:'尚未填寫負債';
 $('qnet').innerHTML=QTV!=null&&L.length?`淨值 ≈ <b>${fm(QTV-debt)}</b><span class="sum">（總市值 − 負債 ${fm(debt)}）</span>`:''}
 async function qLoad(){$('qmsg').textContent='更新中…';
@@ -490,13 +500,13 @@ function exportPDF(){const t=new Date(),p=x=>String(x).padStart(2,'0'),ts=`${t.g
 const r=RAW[RAW.length-1],live=QQ&&QQ['TWD=X']&&!QQ['TWD=X'].error&&QQ['TWD=X'].price,fx=live?QQ['TWD=X'].price:r[N.length+1],n0=x=>Math.round(x).toLocaleString('en-US');
 const rows=[];let tot=0;N.forEach((n,i)=>{const sh=NUM('sh_'+n)||0;if(!sh)return;const q=live&&QQ[ysym(n)],px=q&&!q.error&&q.price!=null?q.price:r[i+1],v=sh*px*(UD(i)?fx:1)/1e4;tot+=v;rows.push({n,nm:NM[i],sh,px,usd:UD(i),v})});
 const src=live?`即時報價（${p(QQT.getHours())}:${p(QQT.getMinutes())} 取得）`:`最近收盤價（資料日 ${DATA&&DATA.asof?Object.values(DATA.asof).sort().pop():r[0]}）`;
-const L=[[1,'信貸'],[2,'房貸']].map(([i,nm])=>({nm,x:loanBal(i)})).filter(o=>o.x),debt=L.reduce((s,o)=>s+o.x.b,0)/1e4;
+const L=allLoans(),debt=L.reduce((s,o)=>s+o.x.b,0)/1e4;
 const cls={};rows.forEach(o=>{const c=TWS.has(o.n)?'單一市場股票':CLS(o.n);cls[c]=(cls[c]||0)+o.v});
 let h=`<h1>投資組合快照</h1><div class="meta">產生時間 ${ts}｜價格來源：${src}｜美元匯率 ${fx.toFixed(3)}</div>
 <h2>現況</h2><div class="kv"><span>總市值 <b>${fm(tot)}</b></span>`+(L.length?`<span>負債 <b>${fm(debt)}</b></span><span>淨值 <b>${fm(tot-debt)}</b></span>`:'')+`</div>
 <table><tr><th>標的</th><th>股數</th><th>價格</th><th>台幣市值</th><th>佔比</th></tr>`+rows.map(o=>`<tr><td>${o.nm}</td><td>${n0(o.sh)}</td><td>${ISC(o.n)?'—':(o.usd?'US$ ':'NT$ ')+o.px.toFixed(2)}</td><td>${fm(o.v)}</td><td>${tot?(o.v/tot*100).toFixed(1):0}%</td></tr>`).join('')+`<tr class="tot"><td>合計</td><td></td><td></td><td>${fm(tot)}</td><td>100%</td></tr></table>
 <h2>資產類別</h2><table><tr><th>類別</th><th>台幣市值</th><th>佔比</th></tr>`+['股票','單一市場股票','債券','黃金','現金'].filter(c=>cls[c]).map(c=>`<tr><td>${c}</td><td>${fm(cls[c])}</td><td>${(cls[c]/tot*100).toFixed(1)}%</td></tr>`).join('')+`</table>`;
-if(L.length)h+=`<h2>負債</h2><table><tr><th>項目</th><th>期數</th><th>本金餘額</th><th>每月應繳</th></tr>`+L.map(o=>`<tr><td>${o.nm}${o.x.grace?'（寬限期）':''}</td><td>${o.x.k}/${o.x.n}</td><td>${fm(o.x.b/1e4)}</td><td>${n0(o.x.pay)} 元</td></tr>`).join('')+`<tr class="tot"><td>合計</td><td></td><td>${fm(debt)}</td><td></td></tr></table><div class="note">負債以本息平均攤還、固定利率估算。</div>`;
+if(L.length)h+=`<h2>負債</h2><table><tr><th>項目</th><th>期數</th><th>本金餘額</th><th>每月應繳</th></tr>`+L.map(o=>`<tr><td>${o.nm}${o.x.grace?'（寬限期）':''}</td><td>${o.x.rc?'循環':o.x.k+'/'+o.x.n}</td><td>${fm(o.x.b/1e4)}</td><td>${n0(o.x.pay)} 元</td></tr>`).join('')+`<tr class="tot"><td>合計</td><td></td><td>${fm(debt)}</td><td></td></tr></table><div class="note">負債以本息平均攤還、固定利率估算；理財型房貸以動用餘額計，只計利息。</div>`;
 const alive=[...DV].sort((a,b)=>a.d<b.d?1:-1);
 h+=`<div class="pbr"></div><h2>股利</h2>`;
 if(!alive.length)h+='<div class="note">尚無股利紀錄</div>';
@@ -557,7 +567,7 @@ if(!(v>0)){bad++;return}const k=d+'|'+t+'|'+v;if(key.has(k)){dup++;return}key.ad
 DVP=0;dvApply(l=>{const h=new Set(l.map(kOf));adds.forEach(r=>{if(!h.has(kOf(r))){l.push(r);h.add(kOf(r))}})},'import dividends',`匯入 ${add} 筆`+(dup?`，略過重複 ${dup} 筆`:'')+(bad?`，無法辨識 ${bad} 行`:''));$('dvf').value=''};
 rd.readAsText(f)};
 dvLoad();DVOK=true;dvRender();vInit();
-[1,2].forEach(i=>{$('ln'+i+'ppb').onclick=()=>lnAdd(i);lnRender(i)});
+[1,2,3].forEach(i=>{$('ln'+i+'ppb').onclick=()=>lnAdd(i);lnRender(i)});
 document.querySelectorAll('[id^=ln]').forEach(e=>{e.addEventListener('input',()=>{qNet();save();markSet()});e.addEventListener('change',()=>{qNet();save();markSet()})});
 document.querySelectorAll('input[type=date]').forEach(e=>e.addEventListener('click',()=>{try{e.showPicker&&e.showPicker()}catch(x){}}));qNet();
 try{tab(localStorage.getItem('pc4tab')||'F')}catch(e){tab('F')}
