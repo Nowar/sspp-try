@@ -98,8 +98,8 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="pa"><h2>A 調整前：目前持有（股數）</h2><div id="wa"></div><div class="sum" id="sa"></div>
 <div style="margin-top:8px"><button id="txbtn" class="btn2">產生文字</button> <button id="txcp" class="btn2" style="display:none">複製</button>
 <textarea id="txout" readonly style="display:none;width:100%;margin-top:6px;font:13px/1.5 ui-monospace,Menlo,monospace;height:200px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px"></textarea></div></div>
-<details class="pb" id="bdet"><summary style="font-weight:600;font-size:16px">B 調整後 <span class="sum" id="bsumm" style="font-weight:400"></span><div class="sum" id="dbsum" style="font-weight:400;margin:2px 0 0 18px"></div></summary><div class="row" style="margin:8px 0 10px"><span class="sum">輸入方式</span><select id="bmode" style="font-size:13px;padding:5px 6px"><option value="pct">目標比例（%）</option><option value="sh">股數加減</option></select></div><div id="wb"></div><div id="wdl" style="display:none"></div><div class="sum" id="sb"></div><div id="bcls" style="margin-top:4px;font-size:13px"></div><div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:8px">
-<div class="row"><label>今年年紀</label><input type="number" id="age" value="38" min="0" max="120" step="1" inputmode="numeric"></div>
+<details class="pb" id="bdet"><summary style="font-weight:600;font-size:16px">B 調整後<div id="bcls" style="margin:4px 0 0 18px;font-size:13px;font-weight:400"></div><div class="sum" id="dbsum" style="font-weight:400;margin:2px 0 0 18px"></div></summary><div class="row" style="margin:8px 0 10px"><span class="sum">輸入方式</span><select id="bmode" style="font-size:13px;padding:5px 6px"><option value="pct">目標比例（%）</option><option value="sh">股數加減</option></select></div><div id="wb"></div><div id="wdl" style="display:none"></div><div class="sum" id="sb"></div><div style="margin-top:12px;border-top:1px solid var(--bd);padding-top:8px">
+<div class="row"><label>出生年月<div class="sum" id="agev"></div></label><input type="month" id="bym" style="width:auto"></div>
 <div class="row"><label>歷史試算方向<div class="sum">反推：以今天淨值為終點，算當年需投入多少</div></label><select id="dir"><option value="fwd" selected>正推（今天淨值當起點）</option><option value="rev">反推（今天淨值當終點）</option></select></div>
 <div class="row"><label>再平衡方式</label><select id="rb"><option value="1">每月再平衡</option><option value="3">每季再平衡</option><option value="6">每半年再平衡</option><option value="12" selected>每年再平衡</option><option value="0">不再平衡（買進持有）</option></select></div>
 <div class="note">A 以最新收盤價與匯率換算成台幣；B 選「目標比例」時用 A 的總淨值重新配置，括號內是要買賣的金額與股數；選「股數加減」時每檔選買或賣，再填股數，模擬比較只取調整後的比例、總額沿用 A，實際要投入或取回的現金顯示在 B 下方。輸入只存在你這支手機的瀏覽器裡。</div>
@@ -158,7 +158,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="note">用歷史月報酬 bootstrap（同月資產一起抽，保留相關性與匯率）。A、B 使用同一批抽樣，差異只來自配置。終值＝今天起算第 N 年底的資產；整體虧損＝期末資產加上已提領金額，仍低於總投入。</div></div>
 <div class="card"><h2>未來資產分布（P5 / 中位數 / P95，萬台幣）</h2><div class="ch" style="height:300px"><canvas id="c3"></canvas></div><div class="note" id="dpn" style="color:var(--bad)"></div>
 <div class="sl"><div class="row"><label>未來模擬年數</label><b id="fyrv"></b></div><input type="range" id="fyr" min="5" max="50" step="1" value="50"></div>
-<div class="sl"><div class="row"><label>每年提領（萬，第一年）</label><b id="wdv"></b></div><input type="range" id="wd" min="50" max="300" step="10" value="200"><div class="sum" id="wdp"></div></div>
+<div class="sl"><div class="row"><label>每年提領（萬，第一年）</label><b id="wdv"></b></div><input type="range" id="wd" min="0" max="300" step="10" value="200"><div class="sum" id="wdp"></div></div>
 <div class="sl"><div class="row"><label>提領年增率<div class="sum">每 12 個月調高一次，反映通膨</div></label><b id="wdgv"></b></div><input type="range" id="wdg" min="0" max="20" step="1" value="3"></div>
 <div class="note">價格已是含息報酬（股息自動再投入），模型不會另外發股息給你。每年提領＝你每年從組合拿出來花的全部現金（含股息）。實際操作時，需要賣出的金額＝提領金額 − 當年除息領到的股息，不要把股息另外加在提領之外。</div></div>
 </section>
@@ -180,6 +180,9 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 const DATA=/*__DATA__*/null;
 let N=['GLDM','GOVT','STIP','TIP','VT','2454','0050','009826','00646','VXUS'],NM=['GLDM 黃金','GOVT 美公債','STIP 短期抗通膨債','TIP 抗通膨債','VT 全球股票','2454 聯發科','0050 台股','009826 全球股票(台幣)','00646 美國S&P500','VXUS 美國以外股票'];
 const UD=k=>N[k]!=='CASH'&&!/^\d/.test(N[k]);  // 美元計價＝代號不是數字開頭（現金除外）
+// 年齡以月計：AGM()＝今天的年齡（月數）；AGS(m)＝「幾歲幾個月」
+const AGM=()=>{const v=($('bym')&&$('bym').value)||'',m=v.match(/^(\d{4})-(\d{2})/),t=new Date();return m?Math.max(0,t.getFullYear()*12+t.getMonth()-(+m[1]*12+(+m[2]-1))):38*12};
+const AGS=m=>`${Math.floor(m/12)} 歲${m%12?` ${m%12} 個月`:''}`;
 const UN=i=>N[i]=='CASH'?'元':N[i]=='USDCASH'?'美元':'股';
 const ISC=t=>t=='CASH'||t=='USDCASH',SN=i=>N[i]=='CASH'?'台幣現金':N[i]=='USDCASH'?'美元現金':N[i];  // 現金：台幣每單位 1 元、美元每單位 1 美元（乘匯率），報酬 0
 let R=[],DT=[],charts={},D0='',RAW=[],PX=[];
@@ -294,22 +297,22 @@ const lab=['起點',...dts],gd=[{label:'A 調整前',data:PA.val,borderColor:c.a
 if(ctb>0)gd.push({label:'累計投入',data:PA.inv,borderColor:'#8888',borderDash:[5,4],borderWidth:1.5});
 mk('c1',{type:'line',data:{labels:lab,datasets:gd},options:opt(kt,fm,'萬台幣')});
 mk('c2',{type:'line',data:{labels:lab,datasets:[{label:'A 調整前',data:dA,borderColor:c.a,borderWidth:1.5,fill:true,backgroundColor:c.a+'22'},{label:'B 調整後',data:dB,borderColor:c.b,borderWidth:1.5,fill:true,backgroundColor:c.b+'22'}]},options:opt(kt,fm,'萬台幣')});
-const Y=Math.max(5,Math.min(50,Math.round(+$('fyr').value)||50)),H=Y*12,A0=Math.max(0,Math.round(+$('age').value||38)),yl=`（${A0+Y} 歲）`;
-$('ft').textContent=`未來模擬：今天 ${A0} 歲起 ${Y} 年（到 ${A0+Y} 歲）`;
+const Y=Math.max(5,Math.min(50,Math.round(+$('fyr').value)||50)),H=Y*12,AM=AGM(),yl=`（${AGS(AM+H)}）`;
+$('ft').textContent=`未來模擬：今天 ${AGS(AM)}起 ${Y} 年（到 ${AGS(AM+H)}）`;
 const em=hm;
 const S=sim(wa,wb,H,em,hm,mode,init,ctb,wd,g),[sa,sb]=S.S;
 const fr=[[`整體虧損機率（總投入 ${fm(S.inv)}）`,sa.loss,sb.loss,fp,0,1]];
 if(wd>0)fr.push(['資產耗盡機率',sa.dep,sb.dep,fp,0,1]);
 fr.push(['最大拉回 P5（最糟 5%）',sa.mdd5,sb.mdd5,fp,1],['最大拉回中位數',sa.mdd,sb.mdd,fp,1]);
 table('t2',fr);
-const ys=Y>20?5:Y>10?2:1,XL=[...Array(H+1).keys()].map(i=>i%12||(i/12)%ys?'':(A0+i/12)+'歲');
+const ys=Y>20?5:Y>10?2:1,XL=[...Array(H+1).keys()].map(i=>i%12||(i/12)%ys?'':Math.floor((AM+i)/12)+'歲');
 const ds=(f,col,nm)=>[{label:'_'+nm+' P5',data:f[0],borderColor:'transparent',fill:false},{label:'_'+nm+' P95',data:f[2],borderColor:'transparent',backgroundColor:col+'30',fill:'-1'},{label:nm+' 中位數',data:f[1],borderColor:col,borderWidth:2}];
 const o3=opt(kt,fm,'萬台幣');o3.scales.x.ticks={autoSkip:false,maxRotation:0};o3.scales.y.title={display:false};o3.scales.y.beginAtZero=true;o3.scales.y.border={display:true};o3.scales.y.ticks={callback:v=>v===0?'0':''};
 const now=new Date(),ord=[0,2,1,3,5,4],p2=x=>String(x).padStart(2,'0');
 o3.plugins.tooltip.itemSort=(a,b)=>ord[a.datasetIndex]-ord[b.datasetIndex];
-o3.plugins.tooltip.callbacks.title=it=>{const i=it[0].dataIndex,y=now.getFullYear(),m=now.getMonth()+i,t=new Date(y,m,1);return `${A0+Math.floor(i/12)} 歲${i%12?` ${i%12} 個月`:''}（${t.getFullYear()}/${p2(t.getMonth()+1)}）`};
+o3.plugins.tooltip.callbacks.title=it=>{const i=it[0].dataIndex,y=now.getFullYear(),m=now.getMonth()+i,t=new Date(y,m,1);return `${AGS(AM+i)}（${t.getFullYear()}/${p2(t.getMonth()+1)}）`};
 const zf=(f,k)=>{const i=f[k].findIndex(v=>v<=1e-9);return i<0?null:i},a5=zf(S.f[0],0),b5=zf(S.f[1],0),a50=zf(S.f[0],1),b50=zf(S.f[1],1);
-const mn=(x,y)=>x==null?y:y==null?x:Math.min(x,y),r5=mn(a5,b5),r50=mn(a50,b50),yt=i=>i==null?'未發生':`約 ${A0+Math.floor(i/12)} 歲`;
+const mn=(x,y)=>x==null?y:y==null?x:Math.min(x,y),r5=mn(a5,b5),r50=mn(a50,b50),yt=i=>i==null?'未發生':`約 ${AGS(AM+i)}`;
 $('dpn').textContent=r5==null?'':`紅色區：至少 5% 的情境已把錢用完（A ${yt(a5)}、B ${yt(b5)}）`+(r50==null?'':`；深紅區：過半情境已用完（A ${yt(a50)}、B ${yt(b50)}）`);
 const shade={id:'dep',beforeDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{x}}=ch,box=(i,col)=>{if(i==null)return;const x0=x.getPixelForValue(i);ctx.save();ctx.fillStyle=col;ctx.fillRect(x0,ca.top,ca.right-x0,ca.bottom-ca.top);ctx.restore()};box(r5,'rgba(220,50,40,.12)');box(r50,'rgba(220,50,40,.20)')},
 afterDatasetsDraw(ch){const{ctx,chartArea:ca,scales:{y}}=ch,py=y.getPixelForValue(0);ctx.save();ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--tx').trim()||'#888';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(ca.left,py);ctx.lineTo(ca.right,py);ctx.stroke();ctx.restore()}};
@@ -317,15 +320,15 @@ mk('c3',{type:'line',data:{labels:XL,datasets:[...ds(S.f[0],c.a,'A'),...ds(S.f[1
 
 // 「顯示未持有」關閉時：A 區隱藏沒持有的標的；B 區只在沒持有且沒填目標／加減時隱藏
 function vis(){const h=!$('hidez').checked;N.forEach(n=>{const held=NUM('sh_'+n)>0,used=(+$('wb_'+n).value||0)>0||NUM('dl_'+n)!==0;$('rsh_'+n).style.display=h&&!held?'none':'';$('rwb_'+n).style.display=$('rdl_'+n).style.display=h&&!held&&!used?'none':''})}
-function showB(){wA();vis();try{qNet();[1,2].forEach(lnRender)}catch(e){}if(DVOK)dvRender();const a=aAmt(),tot=a.reduce((x,y)=>x+y,0),w=wB();
+function showB(){wA();vis();if($('agev'))$('agev').textContent=$('bym').value?`今天 ${AGS(AGM())}`:'未填，暫以 38 歲計算';try{qNet();[1,2].forEach(lnRender)}catch(e){}if(DVOK)dvRender();const a=aAmt(),tot=a.reduce((x,y)=>x+y,0),w=wB();
 const SHM=$('bmode').value=='sh';$('wb').style.display=SHM?'none':'';$('wdl').style.display=SHM?'':'none';
 if(SHM)N.forEach((n,i)=>{const s0=NUM('sh_'+n)||0,dl=DL(n),ns=s0+dl;$('dm'+i).textContent=s0||dl?`調整後 ${Math.max(0,ns).toLocaleString('en-US')} ${UN(i)} ≈ ${fm(BV[i])}（${(w[i]*100).toFixed(1)}%）`+(ns<0?'｜賣出超過持有':''):''});
 else N.forEach((_,i)=>{const v=w[i]*tot,d=v-a[i],sh=Math.round(d*1e4/PX[i]);$('bm'+i).textContent=`≈ ${fm(v)}（${d>=0?'+':''}${fm(d)}，約 ${sh>=0?'+':''}${sh.toLocaleString('en-US')} ${UN(i)}）`+(tot>0&&Math.abs(a[i]/tot-w[i])<=Math.min(.05,.25*w[i])+1e-12&&(a[i]>0||w[i]>0)?'｜未達 5/25 門檻':'')});
 if(!SHM)$('sb').textContent+='｜總額 '+fm(tot);
-{const c={現金:0,黃金:0,債券:0,股票:0};N.forEach((n,i)=>{c[CLS(n)]+=w[i]||0});$('bcls').innerHTML=`現金：黃金：債券：股票 ＝ <b>${['現金','黃金','債券','股票'].map(k=>(c[k]*100).toFixed(1)).join('：')}</b><br>單一市場曝險佔股票 ＝ <b>${(()=>{const t=N.reduce((s,n,i)=>s+(TWS.has(n)?w[i]||0:0),0);return c['股票']>1e-12?(t/c['股票']*100).toFixed(1):'0.0'})()}%</b>`;$('bsumm').textContent='（'+['現金','黃金','債券','股票'].map(k=>(c[k]*100).toFixed(1)).join(' : ')+'）'}
+{const c={現金:0,黃金:0,債券:0,股票:0};N.forEach((n,i)=>{c[CLS(n)]+=w[i]||0});$('bcls').innerHTML=`現金：黃金：債券：股票 ＝ <b>${['現金','黃金','債券','股票'].map(k=>(c[k]*100).toFixed(1)).join('：')}</b><br>單一市場曝險佔股票 ＝ <b>${(()=>{const t=N.reduce((s,n,i)=>s+(TWS.has(n)?w[i]||0:0),0);return c['股票']>1e-12?(t/c['股票']*100).toFixed(1):'0.0'})()}%</b>`}
 drawAlloc(a,tot,w);
 $('fyrv').textContent=$('fyr').value+' 年';$('wdgv').textContent=(+$('wdg').value||0).toFixed(0)+'%';{const wy=+$('winz').value,mx=Math.floor(R.length/12);$('winv').textContent=wy>mx?`全部（${(R.length/12).toFixed(1)} 年）`:`近 ${wy} 年`}$('wdv').textContent=(+$('wd').value||0)+' 萬';
-const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，到 ${(Math.round(+$('age').value)||38)+Y} 歲時約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
+const wd=+$('wd').value||0,gg=+$('wdg').value||0,Y=+$('fyr').value||50;$('wdp').textContent=wd>0&&tot>0?`≈ 總淨值的 ${(wd/tot*100).toFixed(1)}%／年（每月約 ${(wd/12).toFixed(1)} 萬）；年增 ${gg}%，到 ${AGS(AGM()+Y*12)}時約 ${fm(wd*(1+gg/100)**Y)}／年`:''}
 let CURTAB='F';function tab(k){CURTAB=k;if(k=='Q'){qLoad();clearInterval(QT);QT=setInterval(qLoad,300000)}else clearInterval(QT);
 ['D','Q','F','H'].forEach(x=>{$('tab'+x).style.display=x==k?'':'none';$('tb'+x).classList.toggle('on',x==k)});try{localStorage.setItem('pc4tab',k)}catch(e){}
 Object.values(charts).forEach(c=>c.resize&&c.resize())}
@@ -532,7 +535,7 @@ $('txout').value=L.join('\n');$('txout').style.display='';$('txcp').style.displa
 async function copyText(){const b=$('txcp');try{await navigator.clipboard.writeText($('txout').value)}catch(e){$('txout').select();try{document.execCommand('copy')}catch(x){}}b.textContent='已複製';setTimeout(()=>b.textContent='複製',1500)}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.type=='checkbox'?(e.checked?'1':'0'):e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 const OLD=['GLDM','GOVT','VT','0050','00646','VXUS'];  // 舊版以位置編號存的欄位，轉成以代號存
-function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');for(const k in o){const m=k.match(/^(sh|wb)(\d)$/),id=m?m[1]+'_'+OLD[+m[2]]:k;if(m&&(id in o))continue;const e=$(id);if(e){if(e.type=='checkbox')e.checked=o[k]=='1';else e.value=o[k]}}}catch(e){}}
+function restore(){try{const o=JSON.parse(localStorage.getItem('pc4')||'{}');if(!o.bym&&o.age){const t=new Date(),a=+o.age||38;o.bym=`${t.getFullYear()-a}-${String(t.getMonth()+1).padStart(2,'0')}`}for(const k in o){const m=k.match(/^(sh|wb)(\d)$/),id=m?m[1]+'_'+OLD[+m[2]]:k;if(m&&(id in o))continue;const e=$(id);if(e){if(e.type=='checkbox')e.checked=o[k]=='1';else e.value=o[k]}}}catch(e){}}
 
 function init(){
 if(DATA){NM=DATA.names;N=NM.map(x=>x.split(' ')[0]);DY=DATA.divVT||null;setRows(DATA.rows);$('src').textContent=`資料來源：${DATA.source}；${DATA.proxyNote?DATA.proxyNote+'；':''}更新日 ${DATA.updated}；各標的最新價日期：${Object.entries(DATA.asof||{}).map(([k,v])=>k+' '+v).join('、')}。美元資產以當月底 USD/TWD 換算成台幣。`}
@@ -544,7 +547,7 @@ const DF=(o,v)=>N.map(t=>t in o?o[t]:v);
 wi('wa',DF({GLDM:30,GOVT:500,VT:300,'0050':5000,'00646':2000,VXUS:200},0),'股','sh','am');wi('wb',DF({GLDM:15,GOVT:10,VT:40,'0050':20,'00646':10,VXUS:5},0),'%','wb','bm');$('wdl').innerHTML=NM.map((n,i)=>`<div class="row" id="rdl_${N[i]}"><label>${n}<div class="sum" id="dm${i}"></div></label><span><select id="ds_${N[i]}" style="font-size:13px;padding:6px 4px"><option value="b">買</option><option value="s">賣</option></select> <input type="text" class="numc" id="dl_${N[i]}" value="0" inputmode="numeric" autocomplete="off" style="width:80px"> ${UN(i)}</span></div>`).join('');
 restore();
 document.querySelectorAll('input.numc').forEach(e=>{fmtNum(e);e.addEventListener('input',()=>fmtNum(e))});
-document.querySelectorAll('input[type=number],input[type=range],input.numc,select').forEach(e=>!e.id.startsWith('dv')&&e.id!='qcol'&&e.addEventListener('input',()=>{showB();markSet();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
+document.querySelectorAll('input[type=number],input[type=range],input[type=month],input.numc,select').forEach(e=>!e.id.startsWith('dv')&&e.id!='qcol'&&e.addEventListener('input',()=>{showB();markSet();clearTimeout(window.tm);window.tm=setTimeout(update,250)}));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',update);
 $('tbD').onclick=()=>tab('D');$('pdfbtn').onclick=exportPDF;try{$('bdet').open=localStorage.getItem('pc4bopen')=='1'}catch(e){}$('bdet').addEventListener('toggle',()=>{try{localStorage.setItem('pc4bopen',$('bdet').open?'1':'0')}catch(e){}});
 try{$('adet').open=localStorage.getItem('pc4aopen')!='0'}catch(e){}$('adet').addEventListener('toggle',()=>{try{localStorage.setItem('pc4aopen',$('adet').open?'1':'0')}catch(e){}if($('adet').open)showB()});$('txbtn').onclick=genText;$('txcp').onclick=copyText;$('hidez').addEventListener('change',()=>{save();markSet();showB();if(CURTAB=='Q')qLoad()});$('tbQ').onclick=()=>tab('Q');$('qbtn').onclick=qLoad;
