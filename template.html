@@ -112,14 +112,14 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="sum" style="margin-top:12px">這次調整要買賣的金額（萬台幣，右買左賣）</div><div class="sum" id="cv2r"></div><div class="ch" id="cv2w" style="height:260px"><canvas id="cv2"></canvas></div><div class="note" id="cv2n"></div>
 <div style="margin-top:12px"><div class="sum">資產類別</div><div class="ch" style="height:220px"><canvas id="cv3"></canvas></div></div>
 <div class="note">圓環：外圈是 B 調整後，內圈是 A 調整前。單一市場股票指 0050、2454（集中在台灣）。</div></details>
-<div class="tabs"><button id="tbS">日變化</button><button id="tbD">股利</button><button id="tbQ">即時</button><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
+<div class="tabs"><button id="tbD">股利</button><button id="tbS">變化</button><button id="tbQ">即時</button><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
 <section id="tabS" style="display:none">
-<div class="card"><h2>新增日變化</h2>
+<div class="card"><h2>新增紀錄</h2>
 <div class="dvf"><input type="date" id="dvsd"><button id="dvsfill" class="btn2">帶入目前數值</button></div>
 <div class="dvf" style="margin-top:6px;grid-template-columns:1fr 1fr .8fr"><input type="number" id="dvst" min="0" step="any" inputmode="decimal" placeholder="總值（萬）"><input type="number" id="dvsn" step="any" inputmode="decimal" placeholder="淨值（萬）"><input type="number" id="dvsfx" min="0" step="0.01" inputmode="decimal" placeholder="匯率"></div>
 <div class="dvf" style="margin-top:6px;grid-template-columns:1fr auto"><span class="note" id="snmsg" style="color:var(--b);margin:0"></span><button id="dvsadd" class="btn">新增</button></div>
 <div class="note">同一天只留一筆，再新增會覆蓋。週一到週五台灣時間 14:00 之後，只要這個網頁有打開，就會自動記錄當天的總值與淨值（標示「自動」）；當天完全沒打開網頁就不會記錄。登入雲端同步時，紀錄會加密同步到各裝置。</div></div>
-<div class="card" id="sncw" style="display:none"><h2>走勢（萬）</h2><div class="ch" style="height:260px"><canvas id="snc"></canvas></div><div class="note">圖表每週取最後一筆紀錄；藍線＝總值，橘線＝淨值。下方列表是每天的完整紀錄。</div></div>
+<div class="card" id="sncw" style="display:none"><h2>走勢（萬）</h2><div class="ch" style="height:260px"><canvas id="snc"></canvas></div><div class="note" id="sncn"></div></div>
 <div class="card"><h2>紀錄（萬）</h2><div class="tw"><table id="snl"></table></div><div class="pg" id="snpg"></div></div>
 </section>
 <section id="tabD" style="display:none">
@@ -569,7 +569,8 @@ $('snpg').innerHTML=np>1?`<button id="snprev" ${SNP==0?'disabled':''}>◀ 較新
 if(np>1){$('snprev').onclick=()=>{SNP--;snRender()};$('snnext').onclick=()=>{SNP++;snRender()}}
 $('snl').querySelectorAll('.del').forEach(b=>b.onclick=()=>{if(b.dataset.c){const d=b.dataset.d;snApply(l=>{const i=l.findIndex(x=>x.d==d);if(i>=0)l.splice(i,1)},'delete snapshot','已刪除 '+d);return}
 b.dataset.c='1';b.textContent='確認刪除';b.classList.add('on');setTimeout(()=>{if(b.isConnected&&b.dataset.c){delete b.dataset.c;b.textContent='刪除';b.classList.remove('on')}},3000)});
-const A0=[...L].reverse(),WK=new Map();A0.forEach(x=>{const z=new Date(x.d+'T00:00');z.setDate(z.getDate()-(z.getDay()+6)%7);WK.set(z.toDateString(),x)});const A=[...WK.values()];  // 圖表每週取最後一筆$('sncw').style.display=A.length?'':'none';
+const A0=[...L].reverse(),WK=new Map();A0.forEach(x=>{const z=new Date(x.d+'T00:00');z.setDate(z.getDate()-(z.getDay()+6)%7);WK.set(z.toDateString(),x)});const A=A0.length<=120?A0:[...WK.values()];  // 紀錄少時畫每筆，超過 120 筆改為每週取最後一筆
+$('sncn').textContent=(A0.length<=120?'圖表顯示每一筆紀錄':'紀錄超過 120 筆，圖表改為每週取最後一筆')+'；藍線＝總值，橘線＝淨值。'+(A.length<2?'至少要有兩筆紀錄才會連成線。':'');$('sncw').style.display=A.length?'':'none';
 if(A.length)mk('snc',{type:'line',data:{labels:A.map(x=>x.d.slice(5).replace('-','/')),datasets:[{type:'line',label:'淨值',data:A.map(x=>x.n),borderColor:'#e8833a',backgroundColor:'#e8833a',borderWidth:2.5,pointRadius:A.length<40?3:0,tension:.25,order:0},{type:'line',label:'總值',data:A.map(x=>x.t),borderColor:'#4a6fa5',backgroundColor:'#4a6fa5',borderWidth:2.5,pointRadius:A.length<40?3:0,tension:.25,order:1}]},
 options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},scales:{x:{ticks:{maxTicksLimit:7,maxRotation:0}},y:{beginAtZero:false,grace:'8%',ticks:{callback:v=>v.toLocaleString('en-US')}}},plugins:{legend:{position:'bottom',labels:{boxWidth:12}},tooltip:{callbacks:{footer:it=>{const x=A[it[0].dataIndex];return x.fx!=null?'匯率 '+(+x.fx).toFixed(2):''},title:it=>A[it[0].dataIndex].d,label:i=>`${i.dataset.label} ${f1(i.parsed.y)} 萬`}}}}})}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.type=='checkbox'?(e.checked?'1':'0'):e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
