@@ -111,7 +111,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div class="sum" style="margin-top:8px">各標的金額（萬台幣，A 調整前／B 調整後；段內數字為萬；「股數加減」時 B 是調整後的實際金額，長度會跟著增減）</div><div class="ch" style="height:190px"><canvas id="cv1"></canvas></div>
 <div class="sum" style="margin-top:12px">這次調整要買賣的金額（萬台幣，右買左賣）</div><div class="sum" id="cv2r"></div><div class="ch" id="cv2w" style="height:260px"><canvas id="cv2"></canvas></div><div class="note" id="cv2n"></div>
 <div style="margin-top:12px"><div class="sum">資產類別</div><div class="ch" style="height:220px"><canvas id="cv3"></canvas></div></div>
-<div class="note">圓環：外圈是 B 調整後，內圈是 A 調整前。單一市場股票指 0050、0050基金（集中在台灣）。</div></details>
+<div class="note">圓環：外圈是 B 調整後，內圈是 A 調整前。單一市場股票指 0050、卓越50連結基金（集中在台灣）。</div></details>
 <div class="tabs"><button id="tbD">股利</button><button id="tbS">變化</button><button id="tbQ">即時</button><button id="tbF" class="on">未來模擬</button><button id="tbH">歷史回測</button></div>
 <section id="tabS" style="display:none">
 <div class="card"><h2>新增紀錄</h2>
@@ -193,7 +193,7 @@ const UD=k=>N[k]!=='CASH'&&!/^\d/.test(N[k]);  // 美元計價＝代號不是數
 const AGM=()=>{const v=($('bym')&&$('bym').value)||'',m=v.match(/^(\d{4})-(\d{2})/),t=new Date();return m?Math.max(0,t.getFullYear()*12+t.getMonth()-(+m[1]*12+(+m[2]-1))):38*12};
 const AGS=m=>`${Math.floor(m/12)} 歲${m%12?` ${m%12} 個月`:''}`;
 const UN=i=>N[i]=='CASH'?'萬':N[i]=='USDCASH'?'美元':N[i]=='0050F'?'萬':'股';
-const ISC=t=>t=='CASH'||t=='USDCASH',SN=i=>N[i]=='CASH'?'台幣現金':N[i]=='USDCASH'?'美元現金':N[i]=='0050F'?'0050基金':N[i];  // 現金：台幣每單位 1 元、美元每單位 1 美元（乘匯率），報酬 0
+const ISC=t=>t=='CASH'||t=='USDCASH',SN=i=>N[i]=='CASH'?'台幣現金':N[i]=='USDCASH'?'美元現金':N[i]=='0050F'?'卓越50連結基金':N[i];  // 現金：台幣每單位 1 元、美元每單位 1 美元（乘匯率），報酬 0
 let R=[],DT=[],charts={},D0='',RAW=[],PX=[];
 const $=id=>document.getElementById(id);
 const pct=x=>isNaN(x)?'—':(x*100).toFixed(1)+'%',fp=pct,mean=a=>a.reduce((s,x)=>s+x,0)/a.length;
@@ -210,8 +210,8 @@ return o}
 
 let DY=null;
 function setRows(rows){const O=[...N];
-// 虛擬標的：0050基金（填現值、報酬跟 0050 一樣）放在 0050 旁邊；台幣／美元現金放最後
-{const k=N.indexOf('0050');if(k>=0&&!N.includes('0050F')){N.splice(k+1,0,'0050F');NM.splice(k+1,0,'0050基金')}}
+// 虛擬標的：卓越50連結基金（填現值、報酬跟 0050 一樣）放在 0050 旁邊；台幣／美元現金放最後
+{const k=N.indexOf('0050');if(k>=0&&!N.includes('0050F')){N.splice(k+1,0,'0050F');NM.splice(k+1,0,'卓越50連結基金')}}
 ['CASH','USDCASH'].forEach((t,k)=>{if(!N.includes(t)){N.push(t);NM.push(k?'美元現金':'台幣現金')}});
 const src=N.map(t=>O.indexOf(t)),k50=O.indexOf('0050');
 rows=rows.map(r=>r.length==O.length+2?[r[0],...N.map((t,i)=>t=='0050F'?(k50>=0?r[1+k50]:1):src[i]<0?1:r[1+src[i]]),r[r.length-1]]:r);rows.sort((a,b)=>a[0]<b[0]?-1:1);D0=rows[0][0];RAW=rows;buildR(0)}
@@ -506,7 +506,7 @@ L.forEach(i=>{const t=N[i],q=Q[ysym(t)],sh=NUM('sh_'+t)||0,usd=UD(i);
 if(!q||q.error||q.price==null||(usd&&!okfx)){h+=`<tr><td>${t}</td><td colspan="4" class="note">${q&&q.error||'無資料'}</td></tr>`;return}
 const c=q.price-q.prev,v=sh*q.price*(usd?fx.price:1)/1e4,vp=sh*q.prev*(usd?fx.prev:1)/1e4,dv=v-vp;tv+=v;tp+=vp;if(sh&&qOpen(q)){lv+=v;lp+=vp;ln++}
 h+=`<tr class="${qOpen(q)?'live':''}"><td>${t}</td><td>${q.price.toFixed(2)}<br><span class="sum">${usd?'US$':'NT$'}</span>${qExt(q)}</td><td class="${cl(c)}">${chg(c,q.prev?c/q.prev:0)}</td><td>${sh?fm(v)+`<br><span class="${cl(dv)}">${dv>=0?'+':''}${dv.toFixed(1)} 萬</span>`:'<span class="sum">未持有</span>'}</td><td class="sum">${qTime(q)}</td></tr>`});
-{const f=NUM('sh_0050F');if(f>0){tv+=f;tp+=f;h+=`<tr><td>0050基金</td><td class="sum">NT$</td><td></td><td>${fm(f)}</td><td class="sum">現值</td></tr>`}}
+{const f=NUM('sh_0050F');if(f>0){tv+=f;tp+=f;h+=`<tr><td>卓越50連結基金</td><td class="sum">NT$</td><td></td><td>${fm(f)}</td><td class="sum">現值</td></tr>`}}
 {const c=NUM('sh_CASH'),u=NUM('sh_USDCASH'),uv=okfx?u*fx.price/1e4:0,up=okfx?u*fx.prev/1e4:0;if(c>0){tv+=c;tp+=c;h+=`<tr><td>台幣現金</td><td class="sum">NT$</td><td></td><td>${fm(c)}</td><td></td></tr>`}
 if(u>0&&okfx){tv+=uv;tp+=up;const dv=uv-up;h+=`<tr><td>美元現金</td><td>${u.toLocaleString('en-US')}<br><span class="sum">US$</span></td><td></td><td>${fm(uv)}<br><span class="${cl(dv)}">${dv>=0?'+':''}${dv.toFixed(1)} 萬</span></td><td class="sum">匯率</td></tr>`}}
 if(okfx){const c=fx.price-fx.prev;h+=`<tr class="${qOpen(fx)?'live':''}"><td>USD/TWD</td><td>${fx.price.toFixed(3)}</td><td class="${cl(c)}">${chg(c,c/fx.prev)}</td><td class="sum">匯率</td><td class="sum">${qTime(fx)}</td></tr>`}
