@@ -192,7 +192,7 @@ const UD=k=>N[k]!=='CASH'&&!/^\d/.test(N[k]);  // 美元計價＝代號不是數
 // 年齡以月計：AGM()＝今天的年齡（月數）；AGS(m)＝「幾歲幾個月」
 const AGM=()=>{const v=($('bym')&&$('bym').value)||'',m=v.match(/^(\d{4})-(\d{2})/),t=new Date();return m?Math.max(0,t.getFullYear()*12+t.getMonth()-(+m[1]*12+(+m[2]-1))):38*12};
 const AGS=m=>`${Math.floor(m/12)} 歲${m%12?` ${m%12} 個月`:''}`;
-const UN=i=>N[i]=='CASH'?'元':N[i]=='USDCASH'?'美元':N[i]=='0050F'?'萬':'股';
+const UN=i=>N[i]=='CASH'?'萬':N[i]=='USDCASH'?'美元':N[i]=='0050F'?'萬':'股';
 const ISC=t=>t=='CASH'||t=='USDCASH',SN=i=>N[i]=='CASH'?'台幣現金':N[i]=='USDCASH'?'美元現金':N[i]=='0050F'?'0050基金':N[i];  // 現金：台幣每單位 1 元、美元每單位 1 美元（乘匯率），報酬 0
 let R=[],DT=[],charts={},D0='',RAW=[],PX=[];
 const $=id=>document.getElementById(id);
@@ -226,7 +226,7 @@ function fmtNum(e){const v=String(e.value),pos=e.selectionStart==null?v.length:e
 if(f===v)return;e.value=f;let k=0,p=0;while(p<f.length&&k<before){if(/\d/.test(f[p]))k++;p++}try{e.setSelectionRange(p,p)}catch(x){}}
 function aAmt(){return N.map((_,i)=>(NUM('sh_'+N[i])||0)*PX[i]/1e4)}
 function wA(){const a=aAmt(),s=a.reduce((x,y)=>x+y,0);
-a.forEach((v,i)=>{const r=RAW[RAW.length-1];$('am'+i).textContent=N[i]=='CASH'||N[i]=='0050F'?`≈ ${fm(v)}`:N[i]=='USDCASH'?`≈ ${fm(v)}（匯率 ${r[N.length+1].toFixed(2)}）`:`≈ ${fm(v)}（每股 ${UD(i)?'US$ '+r[i+1].toFixed(2):'NT$ '+r[i+1].toFixed(2)}）`});
+a.forEach((v,i)=>{const r=RAW[RAW.length-1];$('am'+i).textContent=N[i]=='CASH'&&NUM('sh_CASH')>=1e5?'單位已改成萬，這個數字看起來是以元填的，請改成萬':N[i]=='CASH'||N[i]=='0050F'?`≈ ${fm(v)}`:N[i]=='USDCASH'?`≈ ${fm(v)}（匯率 ${r[N.length+1].toFixed(2)}）`:`≈ ${fm(v)}（每股 ${UD(i)?'US$ '+r[i+1].toFixed(2):'NT$ '+r[i+1].toFixed(2)}）`});
 $('sa').textContent='總淨值 '+fm(s)+'｜'+a.map((x,i)=>SN(i)+' '+(s?(x/s*100).toFixed(0):0)+'%').join('、');
 return{w:s?a.map(x=>x/s):N.map(()=>1/N.length),tot:s}}
 const DL=n=>{const v=NUM('dl_'+n)||0;return $('ds_'+n).value=='s'?-Math.abs(v):v};  // 買為正、賣為負
@@ -507,7 +507,7 @@ if(!q||q.error||q.price==null||(usd&&!okfx)){h+=`<tr><td>${t}</td><td colspan="4
 const c=q.price-q.prev,v=sh*q.price*(usd?fx.price:1)/1e4,vp=sh*q.prev*(usd?fx.prev:1)/1e4,dv=v-vp;tv+=v;tp+=vp;if(sh&&qOpen(q)){lv+=v;lp+=vp;ln++}
 h+=`<tr class="${qOpen(q)?'live':''}"><td>${t}</td><td>${q.price.toFixed(2)}<br><span class="sum">${usd?'US$':'NT$'}</span>${qExt(q)}</td><td class="${cl(c)}">${chg(c,q.prev?c/q.prev:0)}</td><td>${sh?fm(v)+`<br><span class="${cl(dv)}">${dv>=0?'+':''}${dv.toFixed(1)} 萬</span>`:'<span class="sum">未持有</span>'}</td><td class="sum">${qTime(q)}</td></tr>`});
 {const f=NUM('sh_0050F');if(f>0){tv+=f;tp+=f;h+=`<tr><td>0050基金</td><td class="sum">NT$</td><td></td><td>${fm(f)}</td><td class="sum">現值</td></tr>`}}
-{const c=NUM('sh_CASH')/1e4,u=NUM('sh_USDCASH'),uv=okfx?u*fx.price/1e4:0,up=okfx?u*fx.prev/1e4:0;if(c>0){tv+=c;tp+=c;h+=`<tr><td>台幣現金</td><td class="sum">NT$</td><td></td><td>${fm(c)}</td><td></td></tr>`}
+{const c=NUM('sh_CASH'),u=NUM('sh_USDCASH'),uv=okfx?u*fx.price/1e4:0,up=okfx?u*fx.prev/1e4:0;if(c>0){tv+=c;tp+=c;h+=`<tr><td>台幣現金</td><td class="sum">NT$</td><td></td><td>${fm(c)}</td><td></td></tr>`}
 if(u>0&&okfx){tv+=uv;tp+=up;const dv=uv-up;h+=`<tr><td>美元現金</td><td>${u.toLocaleString('en-US')}<br><span class="sum">US$</span></td><td></td><td>${fm(uv)}<br><span class="${cl(dv)}">${dv>=0?'+':''}${dv.toFixed(1)} 萬</span></td><td class="sum">匯率</td></tr>`}}
 if(okfx){const c=fx.price-fx.prev;h+=`<tr class="${qOpen(fx)?'live':''}"><td>USD/TWD</td><td>${fx.price.toFixed(3)}</td><td class="${cl(c)}">${chg(c,c/fx.prev)}</td><td class="sum">匯率</td><td class="sum">${qTime(fx)}</td></tr>`}
 $('qt').innerHTML=h;QTV=tv;qNet();const d=lv-lp;
@@ -518,7 +518,7 @@ catch(e){$('qmsg').textContent='抓不到即時報價：'+e.message}}
 let QQ=null,QQT=null;
 function exportPDF(){const t=new Date(),p=x=>String(x).padStart(2,'0'),ts=`${t.getFullYear()}-${p(t.getMonth()+1)}-${p(t.getDate())} ${p(t.getHours())}:${p(t.getMinutes())}`;
 const r=RAW[RAW.length-1],live=QQ&&QQ['TWD=X']&&!QQ['TWD=X'].error&&QQ['TWD=X'].price,fx=live?QQ['TWD=X'].price:r[N.length+1],n0=x=>Math.round(x).toLocaleString('en-US');
-const rows=[];let tot=0;N.forEach((n,i)=>{const sh=NUM('sh_'+n)||0;if(!sh)return;const q=live&&!ISC(n)&&QQ[ysym(n)],px=n=='0050F'?1e4:ISC(n)?1:q&&!q.error&&q.price!=null?q.price:r[i+1],v=sh*px*(UD(i)?fx:1)/1e4;tot+=v;rows.push({n,nm:NM[i],sh,px,usd:UD(i),v})});
+const rows=[];let tot=0;N.forEach((n,i)=>{const sh=NUM('sh_'+n)||0;if(!sh)return;const q=live&&!ISC(n)&&QQ[ysym(n)],px=n=='0050F'||n=='CASH'?1e4:ISC(n)?1:q&&!q.error&&q.price!=null?q.price:r[i+1],v=sh*px*(UD(i)?fx:1)/1e4;tot+=v;rows.push({n,nm:NM[i],sh,px,usd:UD(i),v})});
 const src=live?`即時報價（${p(QQT.getHours())}:${p(QQT.getMinutes())} 取得）`:`最近收盤價（資料日 ${DATA&&DATA.asof?Object.values(DATA.asof).sort().pop():r[0]}）`;
 const L=allLoans(),debt=L.reduce((s,o)=>s+o.x.b,0)/1e4;
 const cls={};rows.forEach(o=>{const c=TWS.has(o.n)?'單一市場股票':CLS(o.n);cls[c]=(cls[c]||0)+o.v});
@@ -560,12 +560,12 @@ setTimeout(()=>window.print(),100)}
 const TXD0='2026-10-25';  // D1 的日期；今天是第幾天＝今天 − 這天 + 1
 async function genText(){$('txbtn').textContent='取得報價中…';try{await qLoad()}catch(e){}$('txbtn').textContent='產生文字';
 const r=RAW[RAW.length-1],live=QQ&&QQ['TWD=X']&&!QQ['TWD=X'].error&&QQ['TWD=X'].price,fx=live?QQ['TWD=X'].price:r[N.length+1];
-const v=N.map((n,i)=>{const sh=NUM('sh_'+n);if(!sh)return 0;const q=live&&!ISC(n)&&QQ[ysym(n)],px=n=='0050F'?1e4:ISC(n)?1:(q&&!q.error&&q.price!=null?q.price:r[i+1]);return sh*px*(UD(i)?fx:1)});
+const v=N.map((n,i)=>{const sh=NUM('sh_'+n);if(!sh)return 0;const q=live&&!ISC(n)&&QQ[ysym(n)],px=n=='0050F'||n=='CASH'?1e4:ISC(n)?1:(q&&!q.error&&q.price!=null?q.price:r[i+1]);return sh*px*(UD(i)?fx:1)});
 const tot=v.reduce((a,b)=>a+b,0),c={現金:0,黃金:0,債券:0,股票:0};N.forEach((n,i)=>{c[CLS(n)]+=v[i]});const tw=N.reduce((s,n,i)=>s+(TWS.has(n)?v[i]:0),0);
 const t=new Date(),p=x=>String(x).padStart(2,'0'),day=Math.round((new Date(t.getFullYear(),t.getMonth(),t.getDate())-new Date(TXD0+'T00:00'))/864e5)+1;
 const pc=k=>tot?(c[k]/tot*100).toFixed(1):'0.0',ks=c['現金']>0?['現金','黃金','債券','股票']:['黃金','債券','股票'];
 const debt=allLoans().reduce((s,o)=>s+o.x.b,0),L=[`【D${day}】${t.getFullYear()}.${p(t.getMonth()+1)}.${p(t.getDate())} 匯 ${fx.toFixed(2)}`,`總 ${Math.round(tot/1e4)} 淨 ${Math.round((tot-debt)/1e4)}`,`${ks.map(pc).join(' : ')} (台 ${c['股票']?(tw/c['股票']*100).toFixed(1):'0.0'}%)`];
-N.forEach((n,i)=>{const sh=NUM('sh_'+n);if(sh)L.push(`${ISC(n)||n=='0050F'?SN(i):n} x ${sh.toLocaleString('en-US')}${n=='0050F'?' 萬':''}`)});
+N.forEach((n,i)=>{const sh=NUM('sh_'+n);if(sh)L.push(`${ISC(n)||n=='0050F'?SN(i):n} x ${sh.toLocaleString('en-US')}${n=='0050F'||n=='CASH'?' 萬':''}`)});
 $('txout').value=L.join('\n');$('txout').style.display='';$('txcp').style.display=''}
 async function copyText(){const b=$('txcp');try{await navigator.clipboard.writeText($('txout').value)}catch(e){$('txout').select();try{document.execCommand('copy')}catch(x){}}b.textContent='已複製';setTimeout(()=>b.textContent='複製',1500)}
 // ---------- 日變化：每日總值／淨值紀錄 ----------
@@ -575,7 +575,7 @@ function snLoad(){try{SNL=JSON.parse(localStorage.getItem('pc4snp')||'[]')}catch
 function snSave(){try{localStorage.setItem('pc4snp',JSON.stringify(SNL))}catch(e){}}
 function snMsg(t){const e=$('snmsg');e.textContent=t;clearTimeout(e._t);e._t=setTimeout(()=>e.textContent='',6000)}
 function curVals(){const r=RAW[RAW.length-1],live=QQ&&QQ['TWD=X']&&!QQ['TWD=X'].error&&QQ['TWD=X'].price,fx=live?QQ['TWD=X'].price:r[N.length+1];
-const v=N.map((n,i)=>{const sh=NUM('sh_'+n);if(!sh)return 0;const q=live&&!ISC(n)&&QQ[ysym(n)],px=n=='0050F'?1e4:ISC(n)?1:(q&&!q.error&&q.price!=null?q.price:r[i+1]);return sh*px*(UD(i)?fx:1)});
+const v=N.map((n,i)=>{const sh=NUM('sh_'+n);if(!sh)return 0;const q=live&&!ISC(n)&&QQ[ysym(n)],px=n=='0050F'||n=='CASH'?1e4:ISC(n)?1:(q&&!q.error&&q.price!=null?q.price:r[i+1]);return sh*px*(UD(i)?fx:1)});
 const tot=v.reduce((a,b)=>a+b,0),debt=allLoans().reduce((s,o)=>s+o.x.b,0);return{tot,debt,net:tot-debt,fx}}
 function snApply(fn,cm,msg){if(!VK){fn(SNL);snSave();snRender();if(msg)snMsg(msg);return}
 snMsg('加密上傳中…');vMutateKey('snp',fn,cm,l=>{SNL=l;snSave();snRender()}).then(()=>snMsg((msg?msg+'，':'')+'已同步')).catch(e=>snMsg('同步失敗：'+e.message))}
@@ -604,7 +604,7 @@ if(DATA){NM=DATA.names;N=NM.map(x=>x.split(' ')[0]);DY=DATA.divVT||null;setRows(
 else{setRows(demoRows());$('warn').style.display='block'}
 $('winz').max=Math.floor(R.length/12)+1;$('winz').value=$('winz').max;
 const wi=(p,d,u,ip,sub)=>{$(p).innerHTML=NM.map((n,i)=>`<div class="row" id="r${ip}_${N[i]}"><label>${n}<div class="sum" id="${sub}${i}"></div></label><span>${ip=='sh'?`<input type="text" class="numc" id="${ip}_${N[i]}" value="${d[i]}" inputmode="numeric" autocomplete="off">`:`<input type="number" id="${ip}_${N[i]}" value="${d[i]}" min="0" step="any" inputmode="decimal">`} ${(ISC(N[i])||N[i]=='0050F')&&ip=='sh'?UN(i):u}</span></div>`).join('')};
-PX=N.map((_,k)=>{const r=RAW[RAW.length-1];return N[k]=='0050F'?1e4:r[k+1]*(UD(k)?r[N.length+1]:1)});
+PX=N.map((_,k)=>{const r=RAW[RAW.length-1];return N[k]=='0050F'||N[k]=='CASH'?1e4:r[k+1]*(UD(k)?r[N.length+1]:1)});
 const DF=(o,v)=>N.map(t=>t in o?o[t]:v);
 wi('wa',DF({GLDM:30,GOVT:500,VT:300,'0050':5000,'00646':2000,VXUS:200},0),'股','sh','am');wi('wb',DF({GLDM:15,GOVT:10,VT:40,'0050':20,'00646':10,VXUS:5},0),'%','wb','bm');$('wdl').innerHTML=NM.map((n,i)=>`<div class="row" id="rdl_${N[i]}"><label>${n}<div class="sum" id="dm${i}"></div></label><span><select id="ds_${N[i]}" style="font-size:13px;padding:6px 4px"><option value="b">買</option><option value="s">賣</option></select> <input type="text" class="numc" id="dl_${N[i]}" value="0" inputmode="numeric" autocomplete="off" style="width:80px"> ${UN(i)}</span></div>`).join('');
 restore();
