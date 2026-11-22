@@ -93,6 +93,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div id="vin" style="display:none"><div class="row"><span class="sum" id="vst">已登入：股利紀錄、持有股數、目標比例等設定都會自動加密同步</span><button id="dvlogout" class="btn2">登出</button></div>
 <details><summary class="sum">更換 GitHub token（token 過期時用）</summary><div class="dvf" style="grid-template-columns:2fr 1fr;margin-top:6px"><input type="password" id="dvtok2" placeholder="新的 token"><button id="dvretok" class="btn2">更換</button></div></details></div>
 </details>
+<div class="card"><div class="sum">目前配置（內環：類別；外環：標的）</div><div style="position:relative;height:340px;overflow:hidden"><canvas id="cvA"></canvas></div></div>
 <div class="card">
 <div class="grid">
 <div class="pa"><h2>A 調整前：目前持有（股數）</h2><div id="wa"></div><div class="sum" id="sa"></div>
@@ -448,7 +449,12 @@ options:{...small,indexAxis:'y',scales:{x:{ticks:{callback:v=>v}},y:{ticks:{font
 const ring=(key,L0,C0,id)=>{const s0=w=>L0.map(L=>N.reduce((s,n,i)=>s+(key(i)==L?w[i]:0),0)),B0=s0(wb),A0=s0(wa),k=L0.map((_,j)=>j).filter(j=>B0[j]>1e-9||A0[j]>1e-9),labels=k.map(j=>L0[j]),cols=k.map(j=>C0[j]),sb=k.map(j=>B0[j]),sa=k.map(j=>A0[j]);
 mk(id,{type:'doughnut',data:{labels,datasets:[{label:'B',data:sb,backgroundColor:cols,borderWidth:1},{label:'A',data:sa,backgroundColor:cols.map(x=>x+'99'),borderWidth:1}]},
 options:{...small,cutout:'35%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:i=>`${i.dataset.label} ${i.label} ${P(i.parsed)}`}}}}})};
-ring(i=>TWS.has(N[i])?'單一市場股票':CLS(N[i]),['單一市場股票','股票','黃金','債券','現金'],['#8e44ad',CCOL['股票'],CCOL['黃金'],CCOL['債券'],'#9e9e9e'],'cv3');}
+ring(i=>TWS.has(N[i])?'單一市場股票':CLS(N[i]),['單一市場股票','股票','黃金','債券','現金'],['#8e44ad',CCOL['股票'],CCOL['黃金'],CCOL['債券'],'#9e9e9e'],'cv3');
+{const GK=i=>ISC(N[i])?'現金':N[i]=='2454'?'賭':{'股票':'股','債券':'債','黃金':'金'}[CLS(N[i])],GL=['股','債','金','賭','現金'],GC=[CCOL['股票'],CCOL['債券'],CCOL['黃金'],'#8e44ad','#9e9e9e'],
+oi=N.map((_,i)=>i).filter(i=>a[i]>1e-9).sort((x,y)=>GL.indexOf(GK(x))-GL.indexOf(GK(y))||OI(x)-OI(y)),gv=GL.map(g=>oi.reduce((s,i)=>s+(GK(i)==g?a[i]:0),0)),gi=GL.map((_,j)=>j).filter(j=>gv[j]>1e-9),PC=x=>(x/tot*100).toFixed(1)+'%';
+const lab={id:'alab',afterDatasetsDraw(ch){const x=ch.ctx;x.save();x.textAlign='center';x.textBaseline='middle';ch.data.datasets.forEach((d,k)=>ch.getDatasetMeta(k).data.forEach((e,j)=>{if(e.endAngle-e.startAngle<.16)return;const p=e.tooltipPosition(),t=d._t[j];x.fillStyle=lum(d.backgroundColor[j])>.6?'#222':'#fff';x.font=(k?'bold 13px':'bold 11px')+' sans-serif';x.fillText(PC(d.data[j]),p.x,p.y-7);x.font=(k?'12px':'10px')+' sans-serif';x.fillText(t,p.x,p.y+7)}));x.restore()}};
+mk('cvA',{type:'doughnut',data:{datasets:[{data:oi.map(i=>a[i]),backgroundColor:oi.map(i=>COL(i)),_t:oi.map(i=>SN(i)),borderColor:'#fff',borderWidth:1},{data:gi.map(j=>gv[j]),backgroundColor:gi.map(j=>GC[j]),_t:gi.map(j=>GL[j]),borderColor:'#fff',borderWidth:1}]},
+options:{...small,cutout:'28%',plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>`${i.dataset._t[i.dataIndex]} ${PC(i.parsed)}（${fm(i.parsed)}）`}}}},plugins:[lab]});}}
 // ---------- 即時報價（透過 Cloudflare Worker 代理 Yahoo）----------
 const QURL='https://quote.whgu.workers.dev/';let QT=null;
 const ysym=t=>/^\d/.test(t)?t+'.TW':t;
