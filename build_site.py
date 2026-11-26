@@ -172,10 +172,28 @@ try:
 except Exception as e:
     print('VT 配息資料抓取失敗，網頁改用 2% 年殖利率估算：', e)
 
+# 績效比較用的每日參考價（近兩年，還原股價、換成台幣）：VT、AOR、SPY、0050
+ref_daily = None
+try:
+    ex = cached('refs', ['AOR', 'SPY'], adjusted=True, required=False)
+    d = df[['VT', '0050', 'USDTWD']].copy()
+    if ex is not None:
+        d = d.join(ex, how='outer')
+    d = d.sort_index().ffill(limit=10)
+    d = d[d.index >= pd.Timestamp(TODAY) - pd.Timedelta(days=730)]
+    ref_daily = {'d': [x.strftime('%Y-%m-%d') for x in d.index]}
+    for k in ['VT', 'AOR', 'SPY', '0050']:
+        if k in d:
+            s = d[k] * (1 if k == '0050' else d['USDTWD'])
+            ref_daily[k] = [None if pd.isna(x) else round(float(x), 4) for x in s]
+    print(f'參考指標每日資料 {len(d)} 天（到 {d.index.max():%Y-%m-%d}）')
+except Exception as e:
+    print('參考指標每日資料失敗，績效比較圖不顯示：', e)
+
 rows = [[d.strftime('%Y-%m')] + [round(float(x), 4) for x in r] for d, r in zip(m.index, m.values)]
 asof = {k: df[k].last_valid_index().date().isoformat() for k in TICKERS}
 payload = {'names': NAMES, 'rows': rows, 'updated': dt.date.today().isoformat(), 'asof': asof,
-           'source': 'Yahoo Finance（yfinance，已還原股息與分割）', 'divVT': div_vt, 'proxyNote': '；'.join(proxy_note),
+           'source': 'Yahoo Finance（yfinance，已還原股息與分割）', 'divVT': div_vt, 'ref': ref_daily, 'proxyNote': '；'.join(proxy_note),
            'ccy': ['TWD' if v.endswith('.TW') else 'USD' for k, v in TICKERS.items() if k != 'USDTWD']}
 print(f'{len(rows)} 個月：{rows[0][0]} ~ {rows[-1][0]}')
 print('首列', rows[0]); print('末列', rows[-1])
