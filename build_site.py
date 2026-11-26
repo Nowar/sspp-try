@@ -172,20 +172,21 @@ try:
 except Exception as e:
     print('VT 配息資料抓取失敗，網頁改用 2% 年殖利率估算：', e)
 
-# 績效比較用的每日參考價（近兩年，還原股價、換成台幣）：VT、AOR、SPY、0050
+# 績效比較用的每日參考價（近兩年，還原股價、換成台幣）：VT、AOR、SPY、0050、2454
 ref_daily = None
 try:
     ex = cached('refs', ['AOR', 'SPY'], adjusted=True, required=False)
-    d = df[['VT', '0050', 'USDTWD']].copy()
+    d = df[['VT', '0050', '2454', 'USDTWD']].copy()
     if ex is not None:
         d = d.join(ex, how='outer')
     d = d.sort_index().ffill(limit=10)
     d = d[d.index >= pd.Timestamp(TODAY) - pd.Timedelta(days=730)]
     ref_daily = {'d': [x.strftime('%Y-%m-%d') for x in d.index]}
-    for k in ['VT', 'AOR', 'SPY', '0050']:
+    for k in ['VT', 'AOR', 'SPY', '0050', '2454']:
         if k in d:
-            s = d[k] * (1 if k == '0050' else d['USDTWD'])
+            s = d[k] * (1 if k[0].isdigit() else d['USDTWD'])
             ref_daily[k] = [None if pd.isna(x) else round(float(x), 4) for x in s]
+    ref_daily['FX'] = [None if pd.isna(x) else round(float(x), 4) for x in d['USDTWD']]
     print(f'參考指標每日資料 {len(d)} 天（到 {d.index.max():%Y-%m-%d}）')
 except Exception as e:
     print('參考指標每日資料失敗，績效比較圖不顯示：', e)
