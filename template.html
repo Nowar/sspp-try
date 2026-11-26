@@ -93,7 +93,7 @@ details summary{cursor:pointer;font-weight:600;margin:8px 0}
 <div id="vin" style="display:none"><div class="row"><span class="sum" id="vst">已登入：股利紀錄、持有股數、目標比例等設定都會自動加密同步</span><button id="dvlogout" class="btn2">登出</button></div>
 <details><summary class="sum">更換 GitHub token（token 過期時用）</summary><div class="dvf" style="grid-template-columns:2fr 1fr;margin-top:6px"><input type="password" id="dvtok2" placeholder="新的 token"><button id="dvretok" class="btn2">更換</button></div></details></div>
 </details>
-<div class="card" id="pfw" style="display:none"><div class="row" style="justify-content:space-between"><span class="sum">績效比較（台幣計價、含息）</span><label class="sum"><input type="checkbox" id="pfx" onchange="perfRender()"> 倍數</label></div><div style="position:relative;height:280px;overflow:hidden"><canvas id="pfc"></canvas></div><div class="note" id="pfn"></div></div>
+<div class="card" id="pfw" style="display:none"><div class="row" style="justify-content:space-between"><span class="sum">績效比較（台幣計價、含息）</span><label class="sum"><input type="checkbox" id="pfx" onchange="perfRender()"> 倍數</label></div><div style="position:relative;height:336px;overflow:hidden"><canvas id="pfc"></canvas></div><div class="note" id="pfn"></div></div>
 <div class="card"><div class="row" style="justify-content:space-between"><span class="sum">目前配置（內環：類別；外環：標的）</span><label class="sum"><input type="checkbox" id="agb" checked onchange="window.drawPie&&drawPie()"> 含賭</label> <label class="sum"><input type="checkbox" id="agt" checked onchange="window.drawPie&&drawPie()"> 含台</label></div><div style="position:relative;height:340px;overflow:hidden"><canvas id="cvA"></canvas></div></div>
 <div class="card">
 <div class="grid">
@@ -371,7 +371,7 @@ $('dvy').innerHTML=DV.length?'<tr><th>年度</th>'+cols.map(c=>`<th>${c}</th>`).
 const TKS=(a,b)=>a<b?-1:a>b?1:0;  // 代號排序：數字開頭在前，再依字母
 const kOf=r=>r.d+'|'+(r.t||'')+'|'+r.a,same=(x,r)=>r.id?x.id==r.id:kOf(x)==kOf(r),nid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 // 有登入雲端就加密上傳；沒登入就只存在本機
-function dvApply(fn,cm,done){if(!VK){fn(DV);dvSave();dvRender();if(done)dvMsg(done);return}
+function dvApply(fn,cm,done){if(!VK){const o=new Set(DV);fn(DV);DV.forEach(r=>{if(!o.has(r))r.u=1});dvSave();dvRender();if(done)dvMsg(done);return}
 vMsg('加密上傳中…');vMutate(fn,cm).then(()=>{if(done)dvMsg(done);vMsg('已加密同步到 GitHub')}).catch(e=>vMsg('同步失敗：'+e.message))}
 
 // ---------- 加密雲端（存在 GitHub repo 的 data/vault.json）----------
@@ -405,12 +405,17 @@ return await ghPut(VTOK,{...g.v,set:await vEnc(VK,{o:curSet(),u})},g.sha,'update
 async function vPushSet(){try{for(let i=0;i<3;i++){const r=await vSyncSet(await ghGet(VTOK));if(r!='conflict'){if(r=='pushed')vMsg('設定已加密同步');return}}vMsg('設定同步衝突，稍後會再試')}catch(e){vMsg('設定同步失敗：'+e.message)}}
 function vUI(){$('vout').style.display=VK?'none':'';$('vin').style.display=VK?'':'none';$('vsum').textContent=VK?'（已登入）':'（未登入）'}
 async function vOpen(k,g){const tok=await vDec(k,g.v.tok),div=await vDec(k,g.v.div);VK=k;VTOK=tok;
-const h=new Set(div.map(kOf)),extra=DV.filter(r=>!h.has(kOf(r)));DV=div;dvSave();vUI();dvRender();
-if(extra.length){await vMutate(l=>{const s=new Set(l.map(kOf));extra.forEach(r=>{if(!s.has(kOf(r)))l.push({id:nid(),...r})})},'merge local dividends')}
+const h=new Set(div.map(kOf)),extra=DV.filter(r=>r.u&&!h.has(kOf(r)));DV=div;dvSave();vUI();dvRender();
+if(extra.length){await vMutate(l=>{const s=new Set(l.map(kOf));extra.forEach(r=>{if(!s.has(kOf(r))){const{u,...q}=r;l.push({...q,id:nid()})}})},'merge local dividends')}
 let st='same';for(let i=0;i<3;i++){st=await vSyncSet(await ghGet(VTOK));if(st!='conflict')break}
-{const gs=await ghGet(VTOK);let rs=[];if(gs&&gs.v.snp){try{rs=await vDec(VK,gs.v.snp)}catch(e){}}const have=new Set(rs.map(x=>x.d)),ex=SNL.filter(x=>!have.has(x.d));SNL=rs;snSave();
-if(ex.length)await vMutateKey('snp',l=>{const h=new Set(l.map(x=>x.d));ex.forEach(x=>{if(!h.has(x.d))l.push(x)})},'merge snapshots',l=>{SNL=l;snSave()});snRender()}
+{const gs=await ghGet(VTOK);let rs=[];if(gs&&gs.v.snp){try{rs=await vDec(VK,gs.v.snp)}catch(e){}}const have=new Set(rs.map(x=>x.d)),ex=SNL.filter(x=>x.u&&!have.has(x.d));SNL=rs;snSave();
+if(ex.length)await vMutateKey('snp',l=>{const h=new Set(l.map(x=>x.d));ex.forEach(x=>{if(!h.has(x.d)){const{u,...q}=x;l.push(q)}})},'merge snapshots',l=>{SNL=l;snSave()});snRender()}
 vMsg('已登入'+(extra.length?`，合併了這支手機上 ${extra.length} 筆股利`:'')+(st=='pulled'?'，已套用雲端較新的持股與設定':st=='pushed'?'，已把這支手機的持股與設定上傳':''))}
+// 頁面從背景切回來時，重新抓雲端的股利與快照（其他裝置的新增、刪除才會出現）
+let VPT=0;async function vPull(){if(!VK||!VTOK||Date.now()-VPT<30000)return;VPT=Date.now();try{const g=await ghGet(VTOK);if(!g)return;
+const div=await vDec(VK,g.v.div),loc=DV.filter(r=>r.u);DV=[...div,...loc];dvSave();dvRender();
+if(g.v.snp){const sn=await vDec(VK,g.v.snp),h=new Set(sn.map(x=>x.d));SNL=[...sn,...SNL.filter(x=>x.u&&!h.has(x.d))];snSave();snRender()}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState=='visible')vPull()});
 async function vLogin(){const pw=$('dvpw').value;if(!pw){vMsg('請輸入通關密語');return}vMsg('驗證中…');
 try{const g=await ghGet();if(!g){$('vnew').style.display='';vMsg('雲端還沒有資料，請貼上 GitHub token 建立');return}
 let k;try{k=await vKey(pw,b64d(g.v.salt));await vDec(k,g.v.tok)}catch(e){vMsg('通關密語錯誤');return}
@@ -554,11 +559,11 @@ const om=ch.getDatasetMeta(0),S={l:[],r:[]};om.data.forEach((e,j)=>{const a=(e.s
 x.font='19px sans-serif';x.fillStyle='#222';x.strokeStyle='#555';x.lineWidth=1.5;
 ['l','r'].forEach(k=>{const A=S[k].sort((p,q)=>p.y-q.y);for(let j=1;j<A.length;j++)if(A[j].y-A[j-1].y<24)A[j].y=A[j-1].y+24;const ov=A.length?A[A.length-1].y-(ch.chartArea.bottom+40):0;if(ov>0)for(let j=A.length-1;j>=0;j--){A[j].y-=ov;if(j&&A[j].y-A[j-1].y>=24)break}
 A.forEach(o=>{const xe=k=='l'?o.cx-o.R-40:o.cx+o.R+40;x.beginPath();x.moveTo(o.x0,o.y0);x.lineTo(o.x1,o.y);x.lineTo(xe,o.y);x.stroke();x.textAlign=k=='l'?'right':'left';x.fillText(o.t,xe+(k=='l'?-6:6),o.y)})});x.restore()}};
-h+=`<div class="meta" style="margin-top:6pt">目前配置（內環：類別；外環：標的；比例佔總值）</div><div style="text-align:center"><img style="width:92%" src="${IMG(1100,560,{type:'doughnut',data:{datasets:[{data:oi.map(i=>vA[i]),backgroundColor:oi.map(i=>COL(i)),borderColor:'#fff',borderWidth:2},{data:gi.map(j=>gv[j]),backgroundColor:gi.map(j=>GC[j]),borderColor:'#fff',borderWidth:2}]},options:{cutout:'25%',layout:{padding:{left:260,right:260,top:30,bottom:30}},plugins:{legend:{display:false},tooltip:{enabled:false}}},plugins:[PL]})}"></div>`}
+h+=`<div class="meta" style="margin-top:6pt">目前配置（內環：類別；外環：標的；比例佔總值）</div><div style="text-align:center"><img style="width:83%" src="${IMG(1100,560,{type:'doughnut',data:{datasets:[{data:oi.map(i=>vA[i]),backgroundColor:oi.map(i=>COL(i)),borderColor:'#fff',borderWidth:2},{data:gi.map(j=>gv[j]),backgroundColor:gi.map(j=>GC[j]),borderColor:'#fff',borderWidth:2}]},options:{cutout:'25%',layout:{padding:{left:260,right:260,top:30,bottom:30}},plugins:{legend:{display:false},tooltip:{enabled:false}}},plugins:[PL]})}"></div>`}
 else h+='<div class="note">A 區沒有持股</div>';
 const P=perfData();
 h+=`<div class="meta" style="margin-top:6pt">績效比較（台幣計價、含息；${P?P.M?'倍數':'%':''}）</div>`;
-if(P)h+=`<img src="${IMG(1000,380,{type:'line',data:{labels:P.labels,datasets:P.ds.map(d=>({...d,borderWidth:d.order?2:5}))},options:{scales:{x:{ticks:{...TK,maxTicksLimit:10,maxRotation:0},grid:GR},y:{grace:'5%',ticks:{...TK,callback:v=>P.M?v.toFixed(2):v+'%'},grid:GR}},plugins:{legend:LG}}})}"><div class="note">${P.note}</div>`;
+if(P)h+=`<img src="${IMG(1000,380,{type:'line',data:{labels:P.labels,datasets:P.ds.map(d=>({...d,borderWidth:d.order?2:5,...(d.order?{}:{borderColor:'#000',backgroundColor:'#000'})}))},options:{scales:{x:{ticks:{...TK,maxTicksLimit:10,maxRotation:0},grid:GR},y:{grace:'5%',ticks:{...TK,callback:v=>P.M?v.toFixed(2):v+'%'},grid:GR}},layout:{padding:{right:110}},plugins:{legend:LG}},plugins:[P.lab(22)]})}"><div class="note">${P.note}</div>`;
 else h+='<div class="note">變化紀錄不足兩筆，或還沒有參考指標資料</div>'}
 const alive=[...DV].sort((a,b)=>a.d<b.d?1:-1);
 h+=`<div class="pbr"></div><h2>股利</h2>`;
@@ -593,7 +598,7 @@ function snMsg(t){const e=$('snmsg');e.textContent=t;clearTimeout(e._t);e._t=set
 function curVals(){const r=RAW[RAW.length-1],live=QQ&&QQ['TWD=X']&&!QQ['TWD=X'].error&&QQ['TWD=X'].price,fx=live?QQ['TWD=X'].price:r[N.length+1];
 const v=N.map((n,i)=>{const sh=NUM('sh_'+n);if(!sh)return 0;const q=live&&!ISC(n)&&QQ[ysym(n)],px=n=='0050F'||n=='CASH'?1e4:ISC(n)?1:(q&&!q.error&&q.price!=null?q.price:r[i+1]);return sh*px*(UD(i)?fx:1)});
 const tot=v.reduce((a,b)=>a+b,0),debt=allLoans().reduce((s,o)=>s+o.x.b,0);return{tot,debt,net:tot-debt,fx}}
-function snApply(fn,cm,msg){if(!VK){fn(SNL);snSave();snRender();if(msg)snMsg(msg);return}
+function snApply(fn,cm,msg){if(!VK){const o=new Set(SNL);fn(SNL);SNL.forEach(r=>{if(!o.has(r))r.u=1});snSave();snRender();if(msg)snMsg(msg);return}
 snMsg('加密上傳中…');vMutateKey('snp',fn,cm,l=>{SNL=l;snSave();snRender()}).then(()=>snMsg((msg?msg+'，':'')+'已同步')).catch(e=>snMsg('同步失敗：'+e.message))}
 async function snFill(){snMsg('取得報價中…');try{await qLoad()}catch(e){}const c=curVals();$('dvst').value=Math.round(c.tot/1e4);$('dvsn').value=Math.round(c.net/1e4);$('dvsfx').value=c.fx.toFixed(2);snMsg('已帶入目前數值')}
 function snAddManual(){const d=$('dvsd').value,t=parseFloat($('dvst').value),n=parseFloat($('dvsn').value);if(!d||isNaN(t)||isNaN(n)){snMsg('請填日期、總值、淨值');return}
@@ -618,13 +623,14 @@ let p=0;const at=S.map(x=>{while(p+1<R0.d.length&&R0.d[p+1]<=x.d)p++;return R0.d
 const ref=k=>{const a=R0[k];if(!a)return null;const g=j=>{for(let q=at[j];q>=0;q--)if(a[q]!=null)return a[q];return null},b=g(0);return b?S.map((_,j)=>{const v=g(j);return v?v/b:null}):null};
 const WK=new Map();S.forEach((x,j)=>{const z=new Date(x.d+'T00:00');z.setDate(z.getDate()-(z.getDay()+6)%7);WK.set(z.toDateString(),j)});const ix=S.length<=120?S.map((_,j)=>j):[...WK.values()];
 const M=$('pfx').checked,Y=v=>v==null?null:M?+v.toFixed(4):+((v-1)*100).toFixed(2),F=v=>M?v.toFixed(3)+' 倍':(v>=0?'+':'')+v.toFixed(2)+'%';
-const ds=[{label:'淨值',data:ix.map(j=>Y(IN[j])),borderColor:'#e8833a',backgroundColor:'#e8833a',borderWidth:4,order:0}];
-[['VT','VT','#1f6fd1'],['AOR','AOR','#27ae60'],['SPY','S&P500（SPY）','#c0392b'],['0050','0050','#8e44ad']].forEach(([k,l,c])=>{const r=ref(k);if(r)ds.push({label:l,data:ix.map(j=>Y(r[j])),borderColor:c,backgroundColor:c,borderWidth:1.5,order:2})});
+const NC=(()=>{try{return getComputedStyle(document.body).color||'#000'}catch(e){return'#000'}})(),ds=[{label:'淨值',data:ix.map(j=>Y(IN[j])),borderColor:NC,backgroundColor:NC,borderWidth:4,order:0}];
+[['VT','VT','#1f6fd1'],['AOR','AOR','#27ae60'],['SPY','S&P500（SPY）','#e67e22'],['0050','0050','#8e44ad']].forEach(([k,l,c])=>{const r=ref(k);if(r)ds.push({label:l,data:ix.map(j=>Y(r[j])),borderColor:c,backgroundColor:c,borderWidth:1.5,borderDash:[6,4],order:2})});
 ds.forEach(d=>{d.pointRadius=0;d.tension=.2;d.spanGaps=true});
 const na=S.filter((x,j)=>j&&x.adj).length;
-return{S,ix,ds,M,F,labels:ix.map(j=>S[j].d.slice(5).replace('-','/')),note:`從 ${S[0].d} 起算（${M?'第一天＝1':'第一天＝0%'}）；${S.length<=120?'每一筆快照一個點':'紀錄超過 120 筆，每週取最後一筆'}。淨值為時間加權報酬：勾了「人為調整」的 ${na} 筆當天變化不計。參考指標用還原股價（含息），美股換算成台幣，取快照當天或之前最近的收盤價，資料到 ${R0.d[R0.d.length-1]}。`}}
+const lab=fs=>({id:'pfend',afterDatasetsDraw(ch){const d=ch.data.datasets[0],m=ch.getDatasetMeta(0);if(m.hidden)return;let j=d.data.length-1;while(j>=0&&d.data[j]==null)j--;if(j<0)return;const e=m.data[j],x=ch.ctx;x.save();x.font=`bold ${fs}px sans-serif`;x.fillStyle=d.borderColor;x.textAlign='left';x.textBaseline='middle';x.fillText(F(d.data[j]),e.x+6,e.y);x.restore()}});
+return{S,ix,ds,M,F,lab,labels:ix.map(j=>S[j].d.slice(5).replace('-','/')),note:`從 ${S[0].d} 起算（${M?'第一天＝1':'第一天＝0%'}）；${S.length<=120?'每一筆快照一個點':'紀錄超過 120 筆，每週取最後一筆'}。淨值為時間加權報酬：勾了「人為調整」的 ${na} 筆當天變化不計。參考指標用還原股價（含息），美股換算成台幣，取快照當天或之前最近的收盤價，資料到 ${R0.d[R0.d.length-1]}。`}}
 function perfRender(){const P=perfData(),w=$('pfw');if(!P){w.style.display='none';return}w.style.display='';const{S,ix,ds,M,F}=P;
-mk('pfc',{type:'line',data:{labels:P.labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},scales:{x:{ticks:{maxTicksLimit:7,maxRotation:0}},y:{grace:'5%',ticks:{callback:v=>M?v.toFixed(2):v+'%'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:12}},tooltip:{callbacks:{title:it=>S[ix[it[0].dataIndex]].d,label:i=>`${i.dataset.label} ${F(i.parsed.y)}`}}}}});
+mk('pfc',{type:'line',data:{labels:P.labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{right:62}},interaction:{mode:'index',intersect:false},scales:{x:{ticks:{maxTicksLimit:7,maxRotation:0}},y:{grace:'5%',ticks:{callback:v=>M?v.toFixed(2):v+'%'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:12}},tooltip:{callbacks:{title:it=>S[ix[it[0].dataIndex]].d,label:i=>`${i.dataset.label} ${F(i.parsed.y)}`}}}},plugins:[P.lab(12)]});
 $('pfn').textContent=P.note+'點圖例可隱藏線條。'}
 function save(){try{const o={};document.querySelectorAll('input[id],select[id]').forEach(e=>{if(!e.id.startsWith('dv'))o[e.id]=e.type=='checkbox'?(e.checked?'1':'0'):e.value});localStorage.setItem('pc4',JSON.stringify(o))}catch(e){}}
 const OLD=['GLDM','GOVT','VT','0050','00646','VXUS'];  // 舊版以位置編號存的欄位，轉成以代號存
