@@ -503,8 +503,10 @@ options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{
 // ---------- 績效比較：淨值／總值（時間加權，排除人為調整）vs 參考指標 ----------
 function perfData(){const R0=DATA&&DATA.ref,S=[...SNL].sort((a,b)=>a.d<b.d?-1:1);if(!R0||!R0.d||S.length<2)return null;
 let v=1;const IN=S.map((x,j)=>{if(j&&!x.adj&&S[j-1].n>0)v*=x.n/S[j-1].n;return v});
-let p=0;const at=S.map(x=>{while(p+1<R0.d.length&&R0.d[p+1]<=x.d)p++;return R0.d[p]<=x.d?p:-1});
-const O=$('pfo').checked&&!!R0.FX,ref=k=>{const a=R0[k];if(!a)return null;const u=O&&!/^\d/.test(k),g=j=>{for(let q=at[j];q>=0;q--)if(a[q]!=null&&(!u||R0.FX[q]))return u?a[q]/R0.FX[q]:a[q];return null},b=g(0);return b?S.map((_,j)=>{const v=g(j);return v?v/b:null}):null};
+// 對齊快照當下看得到的價格：台股取快照當天（還沒有就往前）的收盤；美股快照時（台北下午）還沒開盤，取快照日「之前」最近的收盤，
+// 美元價＝ref 台幣價 ÷ 同列匯率，再乘上快照記下的匯率（沒記就用 ref 匯率），跟淨值用同一個匯率
+const idx=lt=>{let p=-1;return S.map(x=>{while(p+1<R0.d.length&&(lt?R0.d[p+1]<x.d:R0.d[p+1]<=x.d))p++;return p})},atT=idx(0),atU=idx(1);
+const O=$('pfo').checked&&!!R0.FX,FX=R0.FX,ref=k=>{const a=R0[k];if(!a)return null;const us=!/^\d/.test(k),at=us?atU:atT,g=j=>{for(let q=at[j];q>=0;q--){if(a[q]==null)continue;if(!us)return a[q];if(!FX)return a[q];if(!FX[q])continue;const usd=a[q]/FX[q];return O?usd:usd*(+S[j].fx||FX[q])}return null},b=g(0);return b?S.map((_,j)=>{const v=g(j);return v?v/b:null}):null};
 const WK=new Map();S.forEach((x,j)=>{const z=new Date(x.d+'T00:00');z.setDate(z.getDate()-(z.getDay()+6)%7);WK.set(z.toDateString(),j)});const ix=S.length<=120?S.map((_,j)=>j):[...WK.values()];
 const M=$('pfx').checked,Y=v=>v==null?null:M?+v.toFixed(4):+((v-1)*100).toFixed(2),F=v=>M?v.toFixed(3)+' 倍':(v>=0?'+':'')+v.toFixed(2)+'%';
 const NC=(()=>{try{return getComputedStyle(document.body).color||'#000'}catch(e){return'#000'}})(),ds=[{label:'淨值',data:ix.map(j=>Y(IN[j])),borderColor:NC,backgroundColor:NC,borderWidth:4,order:0}];
@@ -512,7 +514,7 @@ const NC=(()=>{try{return getComputedStyle(document.body).color||'#000'}catch(e)
 ds.forEach(d=>{d.pointRadius=0;d.tension=.2;d.spanGaps=true});
 const na=S.filter((x,j)=>j&&x.adj).length;
 const lab=fs=>({id:'pfend',afterDatasetsDraw(ch){const d=ch.data.datasets[0],m=ch.getDatasetMeta(0);if(m.hidden)return;let j=d.data.length-1;while(j>=0&&d.data[j]==null)j--;if(j<0)return;const e=m.data[j],x=ch.ctx;x.save();x.font=`bold ${fs}px sans-serif`;x.fillStyle=d.borderColor;x.textAlign='left';x.textBaseline='middle';x.fillText(F(d.data[j]),e.x+6,e.y);x.restore()}});
-return{S,ix,ds,M,F,lab,labels:ix.map(j=>S[j].d.slice(5).replace('-','/')),note:`從 ${S[0].d} 起算（${M?'第一天＝1':'第一天＝0%'}）；${S.length<=120?'每一筆快照一個點':'紀錄超過 120 筆，每週取最後一筆'}。淨值為時間加權報酬：勾了「人為調整」的 ${na} 筆當天變化不計。參考指標用還原股價（含息），${O?'VT、AOR、SPY 為美元原幣報酬（淨值仍是台幣）':$('pfo').checked?'這次建置沒有匯率資料，仍以台幣顯示':'美股換算成台幣'}，取快照當天或之前最近的收盤價，資料到 ${R0.d[R0.d.length-1]}。`}}
+return{S,ix,ds,M,F,lab,labels:ix.map(j=>S[j].d.slice(5).replace('-','/')),note:`從 ${S[0].d} 起算（${M?'第一天＝1':'第一天＝0%'}）；${S.length<=120?'每一筆快照一個點':'紀錄超過 120 筆，每週取最後一筆'}。淨值為時間加權報酬：勾了「人為調整」的 ${na} 筆當天變化不計。參考指標用還原股價（含息），${O?'VT、AOR、SPY 為美元原幣報酬（淨值仍是台幣）':$('pfo').checked?'這次建置沒有匯率資料，仍以台幣顯示':'美股換算成台幣'}，和淨值對齊快照當下的價格：台股取快照當天收盤（還沒有就用前一天），美股取快照日前一個交易日的收盤（台北下午美股還沒開盤），台幣換算用快照記下的匯率，資料到 ${R0.d[R0.d.length-1]}。`}}
 function perfRender(){const P=perfData(),w=$('pfw');if(!P){w.style.display='none';return}w.style.display='';const{S,ix,ds,M,F}=P;
 mk('pfc',{type:'line',data:{labels:P.labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{right:62}},interaction:{mode:'index',intersect:false},scales:{x:{ticks:{maxTicksLimit:7,maxRotation:0}},y:{grace:'5%',ticks:{callback:v=>M?v.toFixed(2):v+'%'}}},plugins:{legend:{position:'bottom',labels:{boxWidth:12}},tooltip:{callbacks:{title:it=>S[ix[it[0].dataIndex]].d,label:i=>`${i.dataset.label} ${F(i.parsed.y)}`}}}},plugins:[P.lab(12)]});
 $('pfn').textContent=P.note+'點圖例可隱藏線條。'}
